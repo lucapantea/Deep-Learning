@@ -50,11 +50,11 @@ class LinearModule(object):
         self.input_layer = input_layer
 
         if input_layer:
-            d = self.in_features
+            std = np.sqrt(1/self.in_features)
         else:
-            d = self.out_features
+            std = np.sqrt(2/self.in_features)
 
-        self.params = dict({'weight': np.random.normal(0, 2 / d, (self.in_features, self.out_features)),
+        self.params = dict({'weight': np.random.normal(0, std, (self.in_features, self.out_features)),
                             'bias': np.zeros((self.out_features, ))})
         self.grads = dict({'weight': np.zeros((self.in_features, self.out_features)),
                            'bias': np.zeros((self.out_features, ))})
@@ -137,21 +137,6 @@ class LinearModule(object):
         #######################
 
 
-# todo delete
-# if __name__ == '__main__':
-#     S = 5  # minibatch size
-#     M = 100  # feature vector dimension (d_in)
-#     N = 10  # number of output neurons (d_out)
-#     x = np.random.randn(S, M)
-#
-#     dout = np.random.randn(S, N)
-#
-#     layer = LinearModule(M, N)
-#     out = layer.forward(x)
-#     dx = layer.backward(dout)
-#     dw = layer.grads['weight']
-
-
 class ELUModule(object):
     """
     ELU activation module.
@@ -176,8 +161,8 @@ class ELUModule(object):
         # PUT YOUR CODE HERE  #
         #######################
         # activation: x when x > 0 else exp(x) - 1
-        # gradient: 1 when x > 0 else exp(x)
         out = np.where(x > 0, x, np.exp(x) - 1)
+        # gradient: 1 when x > 0 else exp(x)
         grad = np.where(x > 0, 1, np.exp(x))
         self.grad = grad
         #######################
@@ -247,7 +232,6 @@ class SoftMaxModule(object):
         # PUT YOUR CODE HERE  #
         #######################
         # using the Max Trick, b = max{x}, create column vector:
-
         b = x.max(axis=1).reshape(-1, 1)
         out = np.exp(x - b) / (np.exp(x - b).sum(axis=1).reshape(-1, 1))
         self.out = out
@@ -272,12 +256,7 @@ class SoftMaxModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        out = self.out
-
-        dh = out @ np.identity(out.shape[1]) - out.T @ out
-        print(dh.shape)
-        dx = dout @ dh
-        print(dx.shape)
+        dx = self.out * (dout - (dout * self.out) @ np.ones((self.out.shape[1], self.out.shape[1])))
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -300,19 +279,6 @@ class SoftMaxModule(object):
         # END OF YOUR CODE    #
         #######################
 
-# todo: delete
-if __name__ == '__main__':
-    S = 5  # minibatch size
-    M = 100  # feature vector dimension (d_in)
-    N = 10  # number of output neurons (d_out)
-    x = np.random.randn(S, M)
-
-    dout = np.random.randn(S, N)
-
-    layer = SoftMaxModule()
-    out = layer.forward(x)
-    dx = layer.backward(dout)
-    dw = layer.grads['weight']
 
 class CrossEntropyModule(object):
     """
@@ -335,7 +301,9 @@ class CrossEntropyModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        # Compute losses of the sample batches
+        y = np.eye(np.max(y)+1)[y]
+        out = 1 / x.shape[0] * np.sum(-y * np.log(x))
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -358,7 +326,9 @@ class CrossEntropyModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        # Version 1
+        y = np.eye(np.max(y)+1)[y]
+        dx = -1/x.shape[0] * np.divide(y, x)
         #######################
         # END OF YOUR CODE    #
         #######################
