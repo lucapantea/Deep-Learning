@@ -61,8 +61,7 @@ class MLP(object):
             # Input of next layer is output of current layer
             n_inputs = layer_units
 
-        # Append the last layer & activation
-        self.layers.append(LinearModule(n_hidden[-1], n_classes))
+        self.layers.append(LinearModule(n_inputs if len(n_hidden) == 0 else n_hidden[-1], n_classes))
         self.layers.append(SoftMaxModule())
         #######################
         # END OF YOUR CODE    #
@@ -85,7 +84,7 @@ class MLP(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        out = x
+        out = x.reshape(x.shape[0], -1)
         for layer in self.layers:
             out = layer.forward(out)
         #######################

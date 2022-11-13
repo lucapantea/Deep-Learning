@@ -302,7 +302,8 @@ class CrossEntropyModule(object):
         # PUT YOUR CODE HERE  #
         #######################
         # Compute losses of the sample batches
-        y = np.eye(np.max(y)+1)[y]
+        if y.shape != x.shape:
+            y = np.eye(x.shape[1])[y]
         out = 1 / x.shape[0] * np.sum(-y * np.log(x))
         #######################
         # END OF YOUR CODE    #
@@ -326,8 +327,8 @@ class CrossEntropyModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        # Version 1
-        y = np.eye(np.max(y)+1)[y]
+        if y.shape != x.shape:
+            y = np.eye(x.shape[1])[y]
         dx = -1/x.shape[0] * np.divide(y, x)
         #######################
         # END OF YOUR CODE    #

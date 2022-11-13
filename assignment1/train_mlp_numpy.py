@@ -22,12 +22,14 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
+import copy
+
 import numpy as np
 import os
 from tqdm.auto import tqdm
 from copy import deepcopy
 from mlp_numpy import MLP
-from modules import CrossEntropyModule
+from modules import CrossEntropyModule, LinearModule
 import cifar10_utils
 
 import torch
@@ -103,7 +105,6 @@ def evaluate_model(model, data_loader, num_classes=10):
     return metrics
 
 
-
 def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
     """
     Performs a full training cycle of MLP model.
@@ -149,15 +150,87 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
     # PUT YOUR CODE HERE  #
     #######################
 
-    # TODO: Initialize model and loss module
-    model = ...
-    loss_module = ...
-    # TODO: Training loop including validation
-    val_accuracies = ...
+    # Ininitalize model and criterion
+    model = MLP(n_inputs=32*32*3, n_hidden=hidden_dims, n_classes=10)
+    criterion = CrossEntropyModule()
+
+    # Saving best (valid acc) model for the test set
+    best_model = None
+
+    # Logging info - training loop
+    val_accuracies = []
+    log_freq = 50  # logging max 200 points for each training iteration
+    logging_dict = {'train_loss': [], 'train_acc': [], 'valid_loss': []}
+
+    print("Beginning Training...")
+    for epoch in range(epochs):
+        train_loss = 0.0
+        train_correct = 0
+        train_total = 0
+        for step, data in enumerate(cifar10_loader.get('train'), 0):
+            inputs, targets = data
+
+            # Perform forward pass
+            preds = model.forward(inputs)
+
+            # Calculate training loss & acc
+            train_loss += criterion.forward(preds, targets)
+            train_correct += (preds.argmax(1) == targets).sum()
+            train_total += targets.shape[0]
+
+            # Compute gradient of loss fn
+            loss_grad = criterion.backward(preds, targets)
+
+            # Perform backprop
+            model.backward(loss_grad)
+
+            # Update parameters for all linear modules via SGD update rule
+            for layer in model.layers:
+                if isinstance(layer, LinearModule):
+                    layer.params['weight'] -= lr * layer.grads['weight']
+                    layer.params['bias'] -= lr * layer.grads['bias']
+
+            if step % log_freq == log_freq-1:
+                print(f'[Epoch {epoch + 1}, Step {step + 1:5d}] '
+                      f'Train loss: {train_loss/log_freq:.3f}, '
+                      f'Train acc: {train_correct/train_total:.4f}')
+                logging_dict['train_loss'].append(round(train_loss/log_freq, 3))
+                logging_dict['train_acc'].append(round(train_correct/train_total, 3))
+                train_loss = 0.0
+
+        # Validation loop
+        valid_loss = 0.0
+        valid_correct = 0
+        valid_total = 0
+        best_valid_acc = 0.0
+        for step, data in enumerate(cifar10_loader.get('validation'), 0):
+            inputs, targets = data
+
+            # Perform forward pass
+            preds = model.forward(inputs)
+
+            # Calculate validation loss & accuracy
+            valid_loss += criterion.forward(preds, targets)
+            valid_correct += (preds.argmax(1) == targets).sum()
+            valid_total += targets.shape[0]
+
+        valid_acc = valid_correct / valid_total
+        val_accuracies.append(valid_acc)
+        logging_dict['valid_loss'].append(round(valid_loss / len(cifar10.get("validation")), 3))
+        print(f'Validation loss: {valid_loss / len(cifar10.get("validation")):.3f}, '
+              f'Validation acc: {valid_acc:.4f}')
+
+        # Saving model with the best validation accuracy
+        if valid_acc > best_valid_acc:
+            best_valid_acc = valid_acc
+            best_model = copy.deepcopy(model)
+
+    # TODO: complete this method
+    # Evaluate model with best one obtained in training
+    metrics = evaluate_model(best_model, cifar10_loader.get('test'))
+
     # TODO: Test best model
-    test_accuracy = ...
-    # TODO: Add any information you might want to save for plotting
-    logging_info = ...
+    test_accuracy = metrics.get(...)
     #######################
     # END OF YOUR CODE    #
     #######################
