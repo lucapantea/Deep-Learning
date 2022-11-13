@@ -35,7 +35,7 @@ class LinearModule(object):
           input_layer: boolean, True if this is the first layer after the input, else False.
 
         TODO:
-        Initialize weight parameters using Kaiming initialization. 
+        Initialize weight parameters using Kaiming initialization.
         Initialize biases with zeros.
         Hint: the input_layer argument might be needed for the initialization
 
@@ -45,7 +45,19 @@ class LinearModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        self.in_features = in_features
+        self.out_features = out_features
+        self.input_layer = input_layer
 
+        if input_layer:
+            d = self.in_features
+        else:
+            d = self.out_features
+
+        self.params = dict({'weight': np.random.normal(0, 2 / d, (self.in_features, self.out_features)),
+                            'bias': np.zeros((self.out_features, ))})
+        self.grads = dict({'weight': np.zeros((self.in_features, self.out_features)),
+                           'bias': np.zeros((self.out_features, ))})
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -68,7 +80,11 @@ class LinearModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        # Compute forward pass by calculating Y = X * W.T + B
+        out = x @ self.params['weight'] + self.params['bias']
 
+        # Store the input x for backprop
+        self.input = x
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -92,7 +108,13 @@ class LinearModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        # Retrieve the input variable
+        x = self.input
 
+        # Compute gradient at this module using derived equations
+        self.grads['weight'] = x.T @ dout
+        self.grads['bias'] = dout[0, :]
+        dx = dout @ self.params['weight'].T
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -109,10 +131,25 @@ class LinearModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        self.input = None
         #######################
         # END OF YOUR CODE    #
         #######################
+
+
+# todo delete
+# if __name__ == '__main__':
+#     S = 5  # minibatch size
+#     M = 100  # feature vector dimension (d_in)
+#     N = 10  # number of output neurons (d_out)
+#     x = np.random.randn(S, M)
+#
+#     dout = np.random.randn(S, N)
+#
+#     layer = LinearModule(M, N)
+#     out = layer.forward(x)
+#     dx = layer.backward(dout)
+#     dw = layer.grads['weight']
 
 
 class ELUModule(object):
@@ -138,11 +175,14 @@ class ELUModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        # activation: x when x > 0 else exp(x) - 1
+        # gradient: 1 when x > 0 else exp(x)
+        out = np.where(x > 0, x, np.exp(x) - 1)
+        grad = np.where(x > 0, 1, np.exp(x))
+        self.grad = grad
         #######################
         # END OF YOUR CODE    #
         #######################
-
         return out
 
     def backward(self, dout):
@@ -160,7 +200,7 @@ class ELUModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        dx = self.grad * dout
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -177,7 +217,7 @@ class ELUModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        self.grad = None
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -206,7 +246,11 @@ class SoftMaxModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        # using the Max Trick, b = max{x}, create column vector:
 
+        b = x.max(axis=1).reshape(-1, 1)
+        out = np.exp(x - b) / (np.exp(x - b).sum(axis=1).reshape(-1, 1))
+        self.out = out
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -228,7 +272,12 @@ class SoftMaxModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        out = self.out
 
+        dh = out @ np.identity(out.shape[1]) - out.T @ out
+        print(dh.shape)
+        dx = dout @ dh
+        print(dx.shape)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -246,11 +295,24 @@ class SoftMaxModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        self.out = None
         #######################
         # END OF YOUR CODE    #
         #######################
 
+# todo: delete
+if __name__ == '__main__':
+    S = 5  # minibatch size
+    M = 100  # feature vector dimension (d_in)
+    N = 10  # number of output neurons (d_out)
+    x = np.random.randn(S, M)
+
+    dout = np.random.randn(S, N)
+
+    layer = SoftMaxModule()
+    out = layer.forward(x)
+    dx = layer.backward(dout)
+    dw = layer.grads['weight']
 
 class CrossEntropyModule(object):
     """
