@@ -52,7 +52,18 @@ class MLP(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        self.layers = []
+        for layer_units in n_hidden:
+            # Append a linear layer & activation
+            self.layers.append(LinearModule(n_inputs, layer_units))
+            self.layers.append(ELUModule())
+
+            # Input of next layer is output of current layer
+            n_inputs = layer_units
+
+        # Append the last layer & activation
+        self.layers.append(LinearModule(n_hidden[-1], n_classes))
+        self.layers.append(SoftMaxModule())
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -74,7 +85,9 @@ class MLP(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        out = x
+        for layer in self.layers:
+            out = layer.forward(out)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -95,7 +108,8 @@ class MLP(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        for layer in reversed(self.layers):
+            dout = layer.backward(dout)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -108,7 +122,7 @@ class MLP(object):
         TODO:
         Iterate over modules and call the 'clear_cache' function.
         """
-        
+
         #######################
         # PUT YOUR CODE HERE  #
         #######################
