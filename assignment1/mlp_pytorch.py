@@ -21,6 +21,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 import torch.nn as nn
 from collections import OrderedDict
 
@@ -59,7 +60,28 @@ class MLP(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        super(MLP, self).__init__()
+        self.layers = nn.ModuleList()
+
+        for layer_units in n_hidden:
+            # Append layer & activation $ (optional) BatchNorm
+            self.layers.append(nn.Linear(n_inputs, layer_units))
+            if use_batch_norm:
+                self.layers.append(nn.BatchNorm2d(layer_units))
+            self.layers.append(nn.ELU())
+
+            # Input of next layer is output of current layer
+            n_inputs = layer_units
+
+        self.layers.append(nn.Linear(n_inputs if len(n_hidden) == 0 else n_hidden[-1], n_classes))
+
+        for name, param in self.named_parameters():
+            if name.endswith(".bias"):
+                param.data.fill_(0)
+            elif name.startswith("layers.0"):
+                param.data.normal_(0, 1 / np.sqrt(param.shape[1]))
+            else:
+                param.data.normal_(0, np.sqrt(2) / np.sqrt(param.shape[1]))
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -81,7 +103,9 @@ class MLP(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        out = x.reshape(x.shape[0], -1)
+        for layer in self.layers:
+            out = layer.forward(out)
         #######################
         # END OF YOUR CODE    #
         #######################
