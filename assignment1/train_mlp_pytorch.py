@@ -49,7 +49,11 @@ def confusion_matrix(predictions, targets):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-
+    n_classes = 10
+    conf_mat = np.zeros(shape=(n_classes, n_classes), dtype=np.float32)
+    # iterate over batch targets
+    for batch, target in enumerate(targets):
+        conf_mat[target][predictions[batch].argmax()] += 1
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -70,7 +74,13 @@ def confusion_matrix_to_metrics(confusion_matrix, beta=1.):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-
+    metrics = {
+        'accuracy': np.trace(confusion_matrix) / np.sum(confusion_matrix),
+        'precision': np.mean(np.diag(confusion_matrix) / np.sum(confusion_matrix, axis=0)),
+        'recall': np.mean(np.diag(confusion_matrix) / np.sum(confusion_matrix, axis=1)),
+    }
+    metrics['f1_beta'] = (1 + beta ** 2) * metrics['precision'] * metrics['recall'] / \
+                         (beta ** 2 * metrics['precision'] + metrics['recall'])
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -97,7 +107,22 @@ def evaluate_model(model, data_loader, num_classes=10):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
+    model.eval()
+    conf_mat = np.zeros(shape=(num_classes, num_classes), dtype=float)
+    print("Beginning testing...")
+    for step, data in enumerate(data_loader, 0):
+        inputs, targets = data
 
+        with torch.no_grad():
+            # Perform forward pass
+            preds = model(inputs)
+            batch_conf_mat = confusion_matrix(preds, targets)
+            conf_mat += batch_conf_mat
+
+    metrics = confusion_matrix_to_metrics(conf_mat)
+    print()
+    print(f'Confusion matrix for the testset\n: {conf_mat}\n')
+    print(f'Metrics for testset calculated from Confusion Matrix: {metrics}')
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -158,16 +183,89 @@ def train(hidden_dims, lr, use_batch_norm, batch_size, epochs, seed, data_dir):
     # PUT YOUR CODE HERE  #
     #######################
 
-    # TODO: Initialize model and loss module
-    model = ...
-    loss_module = ...
-    # TODO: Training loop including validation
-    # TODO: Do optimization with the simple SGD optimizer
-    val_accuracies = ...
-    # TODO: Test best model
-    test_accuracy = ...
-    # TODO: Add any information you might want to save for plotting
-    logging_info = ...
+    # Initialize model and criterion
+    model = MLP(n_inputs=32*32*3, n_hidden=hidden_dims, n_classes=10, use_batch_norm=use_batch_norm)
+    loss_module = nn.CrossEntropyLoss()
+
+    # Initialize optimizer
+    optimizer = optim.SGD(params=model.parameters(), lr=lr)
+
+    # Saving best (valid acc) model for the test set
+    best_model = None
+
+    # Logging info - training loop
+    val_accuracies = []
+    log_freq = 50  # logging max 50 points for each training iteration
+    logging_info = {'train_loss': [], 'train_acc': [], 'valid_loss': []}
+
+    print("Beginning Training...")
+    for epoch in range(epochs):
+        model.train()
+        train_loss = 0.0
+        train_correct = 0
+        train_total = 0
+        for step, data in enumerate(cifar10_loader.get('train'), 0):
+            inputs, targets = data
+            inputs = inputs.to(device)
+            targets = targets.to(device)
+
+            # zero the parameter gradients
+            optimizer.zero_grad()
+
+            # Perform forward pass
+            preds = model(inputs)
+
+            # Calculate training loss & acc
+            loss = loss_module(preds, targets)
+            train_loss += loss.item()
+            train_correct += (preds.argmax(1) == targets).sum().item()
+            train_total += targets.shape[0]
+
+            # Perform backprop & SGD update step
+            loss.backward()
+            optimizer.step()
+
+            if step % log_freq == log_freq-1:
+                print(f'[Epoch {epoch + 1}, Step {step + 1:5d}] '
+                      f'Train loss: {train_loss/log_freq:.3f}, '
+                      f'Train acc: {train_correct/train_total:.4f}')
+                logging_info['train_loss'].append(round(train_loss/log_freq, 3))
+                logging_info['train_acc'].append(round(train_correct/train_total, 3))
+                train_loss = 0.0
+
+        # TODO: extract in evaluate model
+        # Validation loop
+        model.eval()
+        valid_loss = 0.0
+        valid_correct = 0
+        valid_total = 0
+        best_valid_acc = 0.0
+        for step, data in enumerate(cifar10_loader.get('validation'), 0):
+            inputs, targets = data
+            with torch.no_grad():
+                # Perform forward pass
+                preds = model(inputs)
+
+                # Calculate evaluation loss & accuracy
+                loss = loss_module(preds, targets)
+                valid_loss += loss.item()
+                valid_correct += (preds.argmax(1) == targets).sum().item()
+                valid_total += targets.shape[0]
+
+        valid_acc = valid_correct / valid_total
+        val_accuracies.append(valid_acc)
+        logging_info['valid_loss'].append(round(valid_loss / len(cifar10.get("validation")), 3))
+        print(f'Validation loss: {valid_loss / len(cifar10.get("validation")):.3f}, '
+              f'Validation acc: {valid_acc:.4f}')
+
+        # Saving model with the best validation accuracy
+        if valid_acc > best_valid_acc:
+            best_valid_acc = valid_acc
+            best_model = deepcopy(model)
+
+    # Evaluate model with best one obtained in training
+    metrics = evaluate_model(best_model, cifar10_loader.get('test'))
+    test_accuracy = metrics.get('accuracy')
     #######################
     # END OF YOUR CODE    #
     #######################

@@ -22,8 +22,6 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import copy
-
 import numpy as np
 import os
 from tqdm.auto import tqdm
@@ -174,7 +172,7 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
     # PUT YOUR CODE HERE  #
     #######################
 
-    # Ininitalize model and criterion
+    # Initialize model and criterion
     model = MLP(n_inputs=32*32*3, n_hidden=hidden_dims, n_classes=10)
     criterion = CrossEntropyModule()
 
@@ -222,6 +220,7 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
                 logging_dict['train_acc'].append(round(train_correct/train_total, 3))
                 train_loss = 0.0
 
+        # TODO: extract in evaluate model
         # Validation loop
         valid_loss = 0.0
         valid_correct = 0
@@ -247,7 +246,7 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
         # Saving model with the best validation accuracy
         if valid_acc > best_valid_acc:
             best_valid_acc = valid_acc
-            best_model = copy.deepcopy(model)
+            best_model = deepcopy(model)
 
     # Evaluate model with best one obtained in training
     metrics = evaluate_model(best_model, cifar10_loader.get('test'))
