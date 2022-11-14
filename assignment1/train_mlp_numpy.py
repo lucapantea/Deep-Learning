@@ -41,7 +41,7 @@ def confusion_matrix(predictions, targets):
 
     Args:
       predictions: 2D float array of size [batch_size, n_classes], predictions of the model (logits)
-      labels: 1D int array of size [batch_size]. Ground truth labels for
+      targets: 1D int array of size [batch_size]. Ground truth labels for
               each sample in the batch
     Returns:
       confusion_matrix: confusion matrix per class, 2D float array of size [n_classes, n_classes]
@@ -50,7 +50,11 @@ def confusion_matrix(predictions, targets):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-
+    n_classes = 10
+    conf_mat = np.zeros(shape=(n_classes, n_classes), dtype=np.float32)
+    # iterate over batch targets
+    for batch, target in enumerate(targets):
+        conf_mat[target][predictions[batch].argmax()] += 1
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -72,6 +76,13 @@ def confusion_matrix_to_metrics(confusion_matrix, beta=1.):
     # PUT YOUR CODE HERE  #
     #######################
 
+    metrics = {
+        'accuracy': np.trace(confusion_matrix)/np.sum(confusion_matrix),
+        'precision': np.mean(np.diag(confusion_matrix)/np.sum(confusion_matrix, axis=0)),
+        'recall': np.mean(np.diag(confusion_matrix)/np.sum(confusion_matrix, axis=1)),
+    }
+    metrics['f1_beta'] = (1 + beta**2) * metrics['precision'] * metrics['recall'] / \
+                         (beta**2 * metrics['precision'] + metrics['recall'])
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -98,7 +109,20 @@ def evaluate_model(model, data_loader, num_classes=10):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
+    conf_mat = np.zeros(shape=(num_classes, num_classes), dtype=float)
+    print("Beginning testing...")
+    for step, data in enumerate(data_loader, 0):
+        inputs, targets = data
 
+        # Perform forward pass to obtain predictions
+        preds = model.forward(inputs)
+        batch_conf_mat = confusion_matrix(preds, targets)
+        conf_mat += batch_conf_mat
+
+    metrics = confusion_matrix_to_metrics(conf_mat)
+    print()
+    print(f'Confusion matrix for the testset\n: {conf_mat}\n')
+    print(f'Metrics for testset calculated from Confusion Matrix: {metrics}')
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -159,7 +183,7 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
 
     # Logging info - training loop
     val_accuracies = []
-    log_freq = 50  # logging max 200 points for each training iteration
+    log_freq = 50  # logging max 50 points for each training iteration
     logging_dict = {'train_loss': [], 'train_acc': [], 'valid_loss': []}
 
     print("Beginning Training...")
@@ -225,12 +249,9 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
             best_valid_acc = valid_acc
             best_model = copy.deepcopy(model)
 
-    # TODO: complete this method
     # Evaluate model with best one obtained in training
     metrics = evaluate_model(best_model, cifar10_loader.get('test'))
-
-    # TODO: Test best model
-    test_accuracy = metrics.get(...)
+    test_accuracy = metrics.get('accuracy')
     #######################
     # END OF YOUR CODE    #
     #######################
