@@ -35,7 +35,8 @@ import torch
 
 def confusion_matrix(predictions, targets):
     """
-    Computes the confusion matrix, i.e. the number of true positives, false positives, true negatives and false negatives.
+    Computes the confusion matrix, i.e. the number of true positives, false positives, true negatives and false
+    negatives.
 
     Args:
       predictions: 2D float array of size [batch_size, n_classes], predictions of the model (logits)
@@ -73,14 +74,16 @@ def confusion_matrix_to_metrics(confusion_matrix, beta=1.):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-
+    n_classes = confusion_matrix.shape[0]
     metrics = {
-        'accuracy': np.trace(confusion_matrix)/np.sum(confusion_matrix),
-        'precision': np.mean(np.diag(confusion_matrix)/np.sum(confusion_matrix, axis=0)),
-        'recall': np.mean(np.diag(confusion_matrix)/np.sum(confusion_matrix, axis=1)),
+        'accuracy': np.trace(confusion_matrix) / np.sum(confusion_matrix),
+        'precision': np.array([confusion_matrix[n_class, n_class] / np.sum(confusion_matrix, axis=0)[n_class]
+                               for n_class in range(n_classes)]),
+        'recall': np.array([confusion_matrix[n_class, n_class] / np.sum(confusion_matrix, axis=1)[n_class]
+                            for n_class in range(n_classes)])
     }
-    metrics['f1_beta'] = (1 + beta**2) * metrics['precision'] * metrics['recall'] / \
-                         (beta**2 * metrics['precision'] + metrics['recall'])
+    metrics['f1_beta'] = (1 + beta ** 2) * np.multiply(metrics['precision'],  metrics['recall']) / \
+                         (beta ** 2 * metrics['precision'] + metrics['recall'])
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -119,7 +122,7 @@ def evaluate_model(model, data_loader, num_classes=10):
 
     metrics = confusion_matrix_to_metrics(conf_mat)
     print()
-    print(f'Confusion matrix for the testset\n: {conf_mat}\n')
+    print(f'Confusion matrix for the testset: \n{conf_mat}\n')
     print(f'Metrics for testset calculated from Confusion Matrix: {metrics}')
     #######################
     # END OF YOUR CODE    #
@@ -173,7 +176,7 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
     #######################
 
     # Initialize model and criterion
-    model = MLP(n_inputs=32*32*3, n_hidden=hidden_dims, n_classes=10)
+    model = MLP(n_inputs=32 * 32 * 3, n_hidden=hidden_dims, n_classes=10)
     criterion = CrossEntropyModule()
 
     # Saving best (valid acc) model for the test set
@@ -212,12 +215,12 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
                     layer.params['weight'] -= lr * layer.grads['weight']
                     layer.params['bias'] -= lr * layer.grads['bias']
 
-            if step % log_freq == log_freq-1:
+            if step % log_freq == log_freq - 1:
                 print(f'[Epoch {epoch + 1}, Step {step + 1:5d}] '
-                      f'Train loss: {train_loss/log_freq:.3f}, '
-                      f'Train acc: {train_correct/train_total:.4f}')
-                logging_dict['train_loss'].append(round(train_loss/log_freq, 3))
-                logging_dict['train_acc'].append(round(train_correct/train_total, 3))
+                      f'Train loss: {train_loss / log_freq:.3f}, '
+                      f'Train acc: {train_correct / train_total:.4f}')
+                logging_dict['train_loss'].append(round(train_loss / log_freq, 3))
+                logging_dict['train_acc'].append(round(train_correct / train_total, 3))
                 train_loss = 0.0
 
         # TODO: extract in evaluate model

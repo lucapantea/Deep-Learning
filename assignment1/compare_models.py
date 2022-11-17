@@ -51,7 +51,12 @@ def train_models(results_filename):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-    # TODO: Run all hyperparameter configurations as requested
+    epochs = 20
+    lr = 0.1
+    hidden_dims = [512, 256, 128]
+    for i in range(len(hidden_dims)):
+        n_hidden = hidden_dims[-(i+1):]
+
     results = None
     # TODO: Save all results in a file with the name 'results_filename'. This can e.g. by a json file
     #######################

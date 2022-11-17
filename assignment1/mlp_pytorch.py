@@ -75,6 +75,7 @@ class MLP(nn.Module):
 
         self.layers.append(nn.Linear(n_inputs if len(n_hidden) == 0 else n_hidden[-1], n_classes))
 
+        # Code adapted from the Tutorial notebooks
         for name, param in self.named_parameters():
             if name.endswith(".bias"):
                 param.data.fill_(0)

@@ -74,12 +74,15 @@ def confusion_matrix_to_metrics(confusion_matrix, beta=1.):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
+    n_classes = confusion_matrix.shape[0]
     metrics = {
         'accuracy': np.trace(confusion_matrix) / np.sum(confusion_matrix),
-        'precision': np.mean(np.diag(confusion_matrix) / np.sum(confusion_matrix, axis=0)),
-        'recall': np.mean(np.diag(confusion_matrix) / np.sum(confusion_matrix, axis=1)),
+        'precision': np.array([confusion_matrix[n_class, n_class] / np.sum(confusion_matrix, axis=0)[n_class]
+                               for n_class in range(n_classes)]),
+        'recall': np.array([confusion_matrix[n_class, n_class] / np.sum(confusion_matrix, axis=1)[n_class]
+                            for n_class in range(n_classes)])
     }
-    metrics['f1_beta'] = (1 + beta ** 2) * metrics['precision'] * metrics['recall'] / \
+    metrics['f1_beta'] = (1 + beta ** 2) * np.multiply(metrics['precision'],  metrics['recall']) / \
                          (beta ** 2 * metrics['precision'] + metrics['recall'])
     #######################
     # END OF YOUR CODE    #
@@ -121,7 +124,7 @@ def evaluate_model(model, data_loader, num_classes=10):
 
     metrics = confusion_matrix_to_metrics(conf_mat)
     print()
-    print(f'Confusion matrix for the testset\n: {conf_mat}\n')
+    print(f'Confusion matrix for the testset: \n{conf_mat}\n')
     print(f'Metrics for testset calculated from Confusion Matrix: {metrics}')
     #######################
     # END OF YOUR CODE    #
@@ -233,7 +236,6 @@ def train(hidden_dims, lr, use_batch_norm, batch_size, epochs, seed, data_dir):
                 logging_info['train_acc'].append(round(train_correct/train_total, 3))
                 train_loss = 0.0
 
-        # TODO: extract in evaluate model
         # Validation loop
         model.eval()
         valid_loss = 0.0
