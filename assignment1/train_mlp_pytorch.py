@@ -25,6 +25,8 @@ import argparse
 import numpy as np
 import os
 from copy import deepcopy
+
+from matplotlib import pyplot as plt
 from tqdm.auto import tqdm
 from mlp_pytorch import MLP
 import cifar10_utils
@@ -36,7 +38,8 @@ import torch.optim as optim
 
 def confusion_matrix(predictions, targets):
     """
-    Computes the confusion matrix, i.e. the number of true positives, false positives, true negatives and false negatives.
+    Computes the confusion matrix, i.e. the number of true positives, false positives, true negatives and false
+    negatives.
 
     Args:
       predictions: 2D float array of size [batch_size, n_classes], predictions of the model (logits)
@@ -82,7 +85,7 @@ def confusion_matrix_to_metrics(confusion_matrix, beta=1.):
         'recall': np.array([confusion_matrix[n_class, n_class] / np.sum(confusion_matrix, axis=1)[n_class]
                             for n_class in range(n_classes)])
     }
-    metrics['f1_beta'] = (1 + beta ** 2) * np.multiply(metrics['precision'],  metrics['recall']) / \
+    metrics['f1_beta'] = (1 + beta ** 2) * np.multiply(metrics['precision'], metrics['recall']) / \
                          (beta ** 2 * metrics['precision'] + metrics['recall'])
     #######################
     # END OF YOUR CODE    #
@@ -187,7 +190,7 @@ def train(hidden_dims, lr, use_batch_norm, batch_size, epochs, seed, data_dir):
     #######################
 
     # Initialize model and criterion
-    model = MLP(n_inputs=32*32*3, n_hidden=hidden_dims, n_classes=10, use_batch_norm=use_batch_norm)
+    model = MLP(n_inputs=32 * 32 * 3, n_hidden=hidden_dims, n_classes=10, use_batch_norm=use_batch_norm)
     loss_module = nn.CrossEntropyLoss()
 
     # Initialize optimizer
@@ -198,7 +201,7 @@ def train(hidden_dims, lr, use_batch_norm, batch_size, epochs, seed, data_dir):
 
     # Logging info - training loop
     val_accuracies = []
-    log_freq = 50  # logging max 50 points for each training iteration
+    log_freq = 10  # logging max 50 points for each training iteration
     logging_info = {'train_loss': [], 'train_acc': [], 'valid_loss': []}
 
     print("Beginning Training...")
@@ -228,12 +231,12 @@ def train(hidden_dims, lr, use_batch_norm, batch_size, epochs, seed, data_dir):
             loss.backward()
             optimizer.step()
 
-            if step % log_freq == log_freq-1:
+            if step % log_freq == log_freq - 1:
                 print(f'[Epoch {epoch + 1}, Step {step + 1:5d}] '
-                      f'Train loss: {train_loss/log_freq:.3f}, '
-                      f'Train acc: {train_correct/train_total:.4f}')
-                logging_info['train_loss'].append(round(train_loss/log_freq, 3))
-                logging_info['train_acc'].append(round(train_correct/train_total, 3))
+                      f'Train loss: {train_loss / log_freq:.3f}, '
+                      f'Train acc: {train_correct / train_total:.4f}')
+                logging_info['train_loss'].append(round(train_loss / log_freq, 3))
+                logging_info['train_acc'].append(round(train_correct / train_total, 3))
                 train_loss = 0.0
 
         # Validation loop
@@ -302,6 +305,49 @@ if __name__ == '__main__':
     args = parser.parse_args()
     kwargs = vars(args)
 
-    train(**kwargs)
     # Feel free to add any additional functions, such as plotting of the loss curve here
-    
+    # model, val_accuracies, test_accuracy, logging_dict = train(**kwargs)
+
+    # Plot Validation accuracy over steps and training loss over epoch & steps
+    # fig, (ax1, ax2) = plt.subplots(1, 2, tight_layout=True, figsize=(12, 4))
+    # steps_training = range(len(logging_dict.get('train_loss')))
+    # epochs = [epoch + 1 for epoch in range(len(val_accuracies))]
+    # ax1.plot(steps_training, logging_dict.get('train_loss'))
+    # ax1.set_xlabel('Steps')
+    # ax1.set_ylabel('Training Loss')
+    # ax1.set_ylim([1, 3])
+    #
+    # ax2.plot(epochs, val_accuracies, "-o")
+    # min_val, max_val = min(val_accuracies), max(val_accuracies)
+    # ax2.plot(np.argmin(val_accuracies) + 1, min_val, "s", label=f"Min accuracy: {min_val:.4f}")
+    # ax2.plot(np.argmax(val_accuracies) + 1, max_val, "D", label=f"Max accuracy: {max_val:.4f}")
+    # ax2.set_xlabel('Epochs')
+    # ax2.set_ylabel('Validation Accuracy')
+    # ax2.set_xticks(epochs)
+    #
+    # plt.legend(loc='lower right')
+    # plt.show()
+
+    import seaborn as sn
+    import pandas as pd
+
+    # Plot confusion matrix
+    # cm = [[403., 34., 230., 17., 30., 38., 19., 39., 154., 36.],
+    #       [39., 617., 28., 13., 13., 22., 19., 19., 110., 120.],
+    #       [45., 27., 408., 34., 189., 101., 107., 40., 39., 10.],
+    #       [17., 21., 130., 155., 110., 309., 140., 42., 50., 26.],
+    #       [23., 14., 154., 27., 494., 67., 101., 61., 47., 12.],
+    #       [11., 11., 133., 78., 97., 499., 66., 57., 31., 17.],
+    #       [6., 17., 95., 41., 143., 59., 560., 25., 39., 15.],
+    #       [26., 18., 74., 32., 127., 121., 32., 524., 21., 25.],
+    #       [106., 52., 86., 17., 17., 37., 4., 17., 615., 49.],
+    #       [45., 185., 42., 34., 24., 29., 23., 53., 67., 498.]]
+    #
+    # df_cm = pd.DataFrame(cm, index=[i for i in "0123456789"],
+    #                      columns=[i for i in "0123456789"])
+    # plt.figure(figsize=(10, 7))
+    # ax = sn.heatmap(df_cm, annot=True, fmt='g')
+    # plt.yticks(rotation=0)
+    # ax.xaxis.tick_top()  # x axis on top
+    # ax.xaxis.set_label_position('top')
+    # plt.show()

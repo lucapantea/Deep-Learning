@@ -22,6 +22,8 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
+
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 from tqdm.auto import tqdm
@@ -184,7 +186,7 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
 
     # Logging info - training loop
     val_accuracies = []
-    log_freq = 50  # logging max 50 points for each training iteration
+    log_freq = 10  # logging max 50 points for each training iteration
     logging_dict = {'train_loss': [], 'train_acc': [], 'valid_loss': []}
 
     print("Beginning Training...")
@@ -286,6 +288,25 @@ if __name__ == '__main__':
     args = parser.parse_args()
     kwargs = vars(args)
 
-    train(**kwargs)
     # Feel free to add any additional functions, such as plotting of the loss curve here
-    
+    model, val_accuracies, test_accuracy, logging_dict = train(**kwargs)
+
+    # Plot Validation accuracy over steps and training loss over epoch & steps
+    fig, (ax1, ax2) = plt.subplots(1, 2, tight_layout=True, figsize=(12, 4))
+    steps_training = range(len(logging_dict.get('train_loss')))
+    epochs = [epoch + 1 for epoch in range(len(val_accuracies))]
+    ax1.plot(steps_training, logging_dict.get('train_loss'))
+    ax1.set_xlabel('Steps')
+    ax1.set_ylabel('Training Loss')
+    ax1.set_ylim([1, 3])
+
+    ax2.plot(epochs, val_accuracies, "-o")
+    min_val, max_val = min(val_accuracies), max(val_accuracies)
+    ax2.plot(np.argmin(val_accuracies) + 1, min_val, "s", label=f"Min accuracy: {min_val:.4f}")
+    ax2.plot(np.argmax(val_accuracies) + 1, max_val, "D", label=f"Max accuracy: {max_val:.4f}")
+    ax2.set_xlabel('Epochs')
+    ax2.set_ylabel('Validation Accuracy')
+    ax2.set_xticks(epochs)
+
+    plt.legend(loc='lower right')
+    plt.show()
