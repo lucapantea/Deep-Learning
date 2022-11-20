@@ -369,32 +369,3 @@ if __name__ == '__main__':
         ax2.set_xticks(epochs)
 
         plt.show()
-
-    # todo: delete
-    # # import libraries
-    # import pandas as pd
-    # import seaborn as sns
-    # import matplotlib.pyplot as plt
-    #
-    # # Create an array with the colors you want to use
-    # colors = ["#69b3a2", "#4374B3"]
-    # sns.set_palette(sns.color_palette(colors))
-    # data = {'precision': [0.55894591, 0.61947791, 0.29565217, 0.34598214, 0.39710611, 0.38923557, 0.52287582,
-    # 0.59749145, 0.52429668, 0.61633663],
-    #         'recall': [0.403, 0.617, 0.408, 0.155, 0.494, 0.499, 0.56, 0.524, 0.615, 0.498],
-    #         'Classes': [epoch + 1 for epoch in range(10)]}
-    #
-    # data = {'0.1': [0.55681259, 0.61945328, 0.29646043, 0.34181223, 0.39787879, 0.39008514, 0.52321924,
-    #                 0.59666291, 0.5250634, 0.61488998],
-    #         '1': [0.46833236, 0.61823647, 0.34285714, 0.2140884, 0.4402852, 0.43733567, 0.54080155,
-    #               0.55833777, 0.56603774, 0.55088496],
-    #         '10': [0.40411632, 0.61702444, 0.4064707, 0.15585178, 0.49280945, 0.49761063,
-    #                0.55960661, 0.52463892, 0.61394839, 0.4989485],
-    #         'Classes': [epoch + 1 for epoch in range(10)]}
-    #
-    # # df = pd.melt(pd.DataFrame(data=data), id_vars='Classes', var_name='Metric', value_name='Value')
-    # # sns.catplot(x='Classes', y='Value', hue='Metric', data=df, kind='bar')
-    #
-    # df = pd.melt(pd.DataFrame(data=data), id_vars='Classes', var_name='Beta value', value_name='F1_beta score')
-    # sns.catplot(x='Classes', y='F1_beta score', hue='Beta value', data=df, kind='bar')
-    # plt.show()
