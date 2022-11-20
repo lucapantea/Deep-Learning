@@ -112,7 +112,7 @@ def evaluate_model(model, data_loader, num_classes=10):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-    conf_mat = np.zeros(shape=(num_classes, num_classes), dtype=float)
+    conf_mat = np.zeros(shape=(num_classes, num_classes))
     print("Beginning testing...")
     for step, data in enumerate(data_loader, 0):
         inputs, targets = data
@@ -182,6 +182,7 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
     criterion = CrossEntropyModule()
 
     # Saving best (valid acc) model for the test set
+    best_valid_acc = 0.0
     best_model = None
 
     # Logging info - training loop
@@ -225,12 +226,10 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
                 logging_dict['train_acc'].append(round(train_correct / train_total, 3))
                 train_loss = 0.0
 
-        # TODO: extract in evaluate model
         # Validation loop
         valid_loss = 0.0
         valid_correct = 0
         valid_total = 0
-        best_valid_acc = 0.0
         for step, data in enumerate(cifar10_loader.get('validation'), 0):
             inputs, targets = data
 
@@ -290,6 +289,7 @@ if __name__ == '__main__':
 
     # Feel free to add any additional functions, such as plotting of the loss curve here
     model, val_accuracies, test_accuracy, logging_dict = train(**kwargs)
+    print('Test accuacy:', test_accuracy)
 
     # Plot Validation accuracy over steps and training loss over epoch & steps
     fig, (ax1, ax2) = plt.subplots(1, 2, tight_layout=True, figsize=(12, 4))

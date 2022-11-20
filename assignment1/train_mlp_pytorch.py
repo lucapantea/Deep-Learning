@@ -198,6 +198,7 @@ def train(hidden_dims, lr, use_batch_norm, batch_size, epochs, seed, data_dir):
 
     # Saving best (valid acc) model for the test set
     best_model = None
+    best_valid_acc = 0.0
 
     # Logging info - training loop
     val_accuracies = []
@@ -244,7 +245,6 @@ def train(hidden_dims, lr, use_batch_norm, batch_size, epochs, seed, data_dir):
         valid_loss = 0.0
         valid_correct = 0
         valid_total = 0
-        best_valid_acc = 0.0
         for step, data in enumerate(cifar10_loader.get('validation'), 0):
             inputs, targets = data
             with torch.no_grad():
@@ -304,50 +304,97 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     kwargs = vars(args)
-
+    model, val_accuracies, test_accuracy, logging_dict = train(**kwargs)
+    print(test_accuracy)
     # Feel free to add any additional functions, such as plotting of the loss curve here
-    # model, val_accuracies, test_accuracy, logging_dict = train(**kwargs)
 
-    # Plot Validation accuracy over steps and training loss over epoch & steps
-    # fig, (ax1, ax2) = plt.subplots(1, 2, tight_layout=True, figsize=(12, 4))
-    # steps_training = range(len(logging_dict.get('train_loss')))
-    # epochs = [epoch + 1 for epoch in range(len(val_accuracies))]
-    # ax1.plot(steps_training, logging_dict.get('train_loss'))
-    # ax1.set_xlabel('Steps')
-    # ax1.set_ylabel('Training Loss')
-    # ax1.set_ylim([1, 3])
-    #
-    # ax2.plot(epochs, val_accuracies, "-o")
-    # min_val, max_val = min(val_accuracies), max(val_accuracies)
-    # ax2.plot(np.argmin(val_accuracies) + 1, min_val, "s", label=f"Min accuracy: {min_val:.4f}")
-    # ax2.plot(np.argmax(val_accuracies) + 1, max_val, "D", label=f"Max accuracy: {max_val:.4f}")
-    # ax2.set_xlabel('Epochs')
-    # ax2.set_ylabel('Validation Accuracy')
-    # ax2.set_xticks(epochs)
-    #
-    # plt.legend(loc='lower right')
-    # plt.show()
+    def learning_rates_experiment():
+        # Learning rates experimenting and plotting
+        start_lr = 0.000001
+        lrs = []
+        for _ in range(9):
+            lrs.append(start_lr)
+            start_lr *= 10
+        print(f'Learning rates: {lrs}')
 
-    import seaborn as sn
-    import pandas as pd
+        # figure 1: accuracy v learning rates
+        fig1, ax0 = plt.subplots(1, 1, tight_layout=True, figsize=(12, 4))
 
-    # Plot confusion matrix
-    # cm = [[403., 34., 230., 17., 30., 38., 19., 39., 154., 36.],
-    #       [39., 617., 28., 13., 13., 22., 19., 19., 110., 120.],
-    #       [45., 27., 408., 34., 189., 101., 107., 40., 39., 10.],
-    #       [17., 21., 130., 155., 110., 309., 140., 42., 50., 26.],
-    #       [23., 14., 154., 27., 494., 67., 101., 61., 47., 12.],
-    #       [11., 11., 133., 78., 97., 499., 66., 57., 31., 17.],
-    #       [6., 17., 95., 41., 143., 59., 560., 25., 39., 15.],
-    #       [26., 18., 74., 32., 127., 121., 32., 524., 21., 25.],
-    #       [106., 52., 86., 17., 17., 37., 4., 17., 615., 49.],
-    #       [45., 185., 42., 34., 24., 29., 23., 53., 67., 498.]]
+        # figure 2: loss function v training steps (for each LR)
+        fig2, ((ax1, ax2, ax3),
+               (ax4, ax5, ax6),
+               (ax7, ax8, ax9)) = plt.subplots(3, 3, tight_layout=True, figsize=(20, 14))
+
+        best_valid_accuracies = []
+        for ax, lr in zip([ax1, ax2, ax3, ax4, ax5, ax6, ax7, ax8, ax9], lrs):
+            kwargs['lr'] = lr
+            model, val_accuracies, test_accuracy, logging_dict = train(**kwargs)
+            best_valid_accuracies.append(max(val_accuracies))
+
+            steps_training = range(len(logging_dict.get('train_loss')))
+            ax.plot(steps_training, logging_dict.get('train_loss'))
+            ax.set_xlabel('Steps')
+            ax.set_ylabel('Training Loss')
+            ax.set_title(f'Lr: %.E' % lr)
+            ax.set_ylim([1, 4])
+
+        string_lrs = list(map(lambda _lr: '%.E' % _lr, lrs))
+        ax0.plot(string_lrs[:len(best_valid_accuracies)], best_valid_accuracies, "-o")
+        ax0.set_xlabel('Learning Rates')
+        ax0.set_ylabel('Best Validation Accuracy')
+        min_val, max_val = min(best_valid_accuracies), max(best_valid_accuracies)
+        ax0.plot(np.argmin(best_valid_accuracies), min_val, "s", label=f"Min accuracy: {min_val:.4f}")
+        ax0.plot(np.argmax(best_valid_accuracies), max_val, "D", label=f"Max accuracy: {max_val:.4f}")
+        ax0.set_ylim([0, 0.5])
+
+        ax0.legend(loc='upper right')
+        plt.show()
+
+    def plot_metrics(val_accuracies, logging_dict):
+        # Plot Validation accuracy over steps and training loss over epoch & steps
+        fig, (ax1, ax2) = plt.subplots(1, 2, tight_layout=True, figsize=(12, 4))
+        steps_training = range(len(logging_dict.get('train_loss')))
+        epochs = [epoch + 1 for epoch in range(len(val_accuracies))]
+        ax1.plot(steps_training, logging_dict.get('train_loss'))
+        ax1.set_xlabel('Steps')
+        ax1.set_ylabel('Training Loss')
+        ax1.set_ylim([1, 3])
+
+        ax2.plot(epochs, val_accuracies, "-o")
+        min_val, max_val = min(val_accuracies), max(val_accuracies)
+        ax2.plot(np.argmin(val_accuracies) + 1, min_val, "s", label=f"Min accuracy: {min_val:.4f}")
+        ax2.plot(np.argmax(val_accuracies) + 1, max_val, "D", label=f"Max accuracy: {max_val:.4f}")
+        ax2.set_xlabel('Epochs')
+        ax2.set_ylabel('Validation Accuracy')
+        ax2.set_xticks(epochs)
+
+        plt.show()
+
+    # todo: delete
+    # # import libraries
+    # import pandas as pd
+    # import seaborn as sns
+    # import matplotlib.pyplot as plt
     #
-    # df_cm = pd.DataFrame(cm, index=[i for i in "0123456789"],
-    #                      columns=[i for i in "0123456789"])
-    # plt.figure(figsize=(10, 7))
-    # ax = sn.heatmap(df_cm, annot=True, fmt='g')
-    # plt.yticks(rotation=0)
-    # ax.xaxis.tick_top()  # x axis on top
-    # ax.xaxis.set_label_position('top')
+    # # Create an array with the colors you want to use
+    # colors = ["#69b3a2", "#4374B3"]
+    # sns.set_palette(sns.color_palette(colors))
+    # data = {'precision': [0.55894591, 0.61947791, 0.29565217, 0.34598214, 0.39710611, 0.38923557, 0.52287582,
+    # 0.59749145, 0.52429668, 0.61633663],
+    #         'recall': [0.403, 0.617, 0.408, 0.155, 0.494, 0.499, 0.56, 0.524, 0.615, 0.498],
+    #         'Classes': [epoch + 1 for epoch in range(10)]}
+    #
+    # data = {'0.1': [0.55681259, 0.61945328, 0.29646043, 0.34181223, 0.39787879, 0.39008514, 0.52321924,
+    #                 0.59666291, 0.5250634, 0.61488998],
+    #         '1': [0.46833236, 0.61823647, 0.34285714, 0.2140884, 0.4402852, 0.43733567, 0.54080155,
+    #               0.55833777, 0.56603774, 0.55088496],
+    #         '10': [0.40411632, 0.61702444, 0.4064707, 0.15585178, 0.49280945, 0.49761063,
+    #                0.55960661, 0.52463892, 0.61394839, 0.4989485],
+    #         'Classes': [epoch + 1 for epoch in range(10)]}
+    #
+    # # df = pd.melt(pd.DataFrame(data=data), id_vars='Classes', var_name='Metric', value_name='Value')
+    # # sns.catplot(x='Classes', y='Value', hue='Metric', data=df, kind='bar')
+    #
+    # df = pd.melt(pd.DataFrame(data=data), id_vars='Classes', var_name='Beta value', value_name='F1_beta score')
+    # sns.catplot(x='Classes', y='F1_beta score', hue='Beta value', data=df, kind='bar')
     # plt.show()

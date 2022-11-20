@@ -113,7 +113,7 @@ class LinearModule(object):
 
         # Compute gradient at this module using derived equations
         self.grads['weight'] = x.T @ dout
-        self.grads['bias'] = dout[0, :]
+        self.grads['bias'] = np.ones(dout.shape[0]).T @ dout
         dx = dout @ self.params['weight'].T
         #######################
         # END OF YOUR CODE    #

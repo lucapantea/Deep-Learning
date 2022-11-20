@@ -21,11 +21,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import json
+
 import numpy as np
 import os
 from mlp_pytorch import MLP
 import cifar10_utils
 import train_mlp_pytorch
+from matplotlib import pyplot as plt
+from train_mlp_pytorch import train
 
 import torch
 import torch.nn as nn
@@ -51,14 +55,23 @@ def train_models(results_filename):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
+    kwargs = {'hidden_dims': None, 'use_batch_norm': False, 'lr': 0.1,
+              'batch_size': 128, 'epochs': None, 'seed': 42, 'data_dir': 'data/'}
     epochs = 20
-    lr = 0.1
     hidden_dims = [512, 256, 128]
+    results = {'val_accuracies': [], 'test_accuracy': [],
+               'logging_dict': []}
     for i in range(len(hidden_dims)):
-        n_hidden = hidden_dims[-(i+1):]
-
-    results = None
-    # TODO: Save all results in a file with the name 'results_filename'. This can e.g. by a json file
+        n_hidden = hidden_dims[-(i + 1):]
+        kwargs['hidden_dims'] = n_hidden
+        kwargs['epochs'] = epochs
+        _, val_accuracies, test_accuracy, logging_dict = train(**kwargs)
+        results.get('val_accuracies').append(val_accuracies)
+        results.get('test_accuracy').append(test_accuracy)
+        results.get('logging_dict').append(logging_dict)
+        with open(results_filename, 'w') as _file:
+            results_json = json.dumps(results)
+            _file.write(results_json)
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -80,7 +93,42 @@ def plot_results(results_filename):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-    pass
+    with open(results_filename, 'r') as _file:
+        results = json.load(_file)
+        val_accuracies_array, test_accuracy_array, logging_dict_array = (results.get(key) for key in results.keys())
+
+    # ax1: train loss, ax2: train acc, ax3: validation acc
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, tight_layout=True, figsize=(16, 5))
+
+    for i in range(len(val_accuracies_array)):
+        val_accuracies = val_accuracies_array[i]
+        test_accuracy = test_accuracy_array[i]
+        logging_dict = logging_dict_array[i]
+        epochs = len(val_accuracies)
+        train_steps = range(len(logging_dict.get('train_loss')))
+        ax1.plot(train_steps, logging_dict.get('train_loss'),
+                 label=f'Model {i + 1}, Test accuracy: {test_accuracy}')
+        ax2.plot(train_steps, logging_dict.get('train_acc'), label=f'Model {i + 1}, Test accuracy: {test_accuracy}')
+        ax3.plot(range(1, epochs + 1), val_accuracies, label=f'Model {i + 1}, Test accuracy: {test_accuracy}')
+
+        ax1.set_xlabel('Steps')
+        ax1.set_ylim([0, 3])
+        ax1.set_ylabel('Training Loss')
+        ax2.set_xlabel('Steps')
+        ax2.set_ylim([0, 1])
+        ax2.set_ylabel('Training Accuracy')
+        ax3.set_xlabel('Epochs')
+        ax3.set_xticks(range(1, epochs + 1))
+        ax3.set_ylabel('Validation Accuracy')
+
+    # Legend business
+    box = ax2.get_position()
+    ax2.set_position([box.x0, box.y0 + box.height * 0.1,
+                      box.width, box.height * 0.9])
+    # Put a legend below current axis
+    ax2.legend(loc='upper center', bbox_to_anchor=(0.5, 1.35),
+               fancybox=True, shadow=True, ncol=1, prop={'size': 13})
+    plt.show()
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -88,7 +136,7 @@ def plot_results(results_filename):
 
 if __name__ == '__main__':
     # Feel free to change the code below as you need it.
-    FILENAME = 'results.txt' 
+    FILENAME = 'results.json'
     if not os.path.isfile(FILENAME):
         train_models(FILENAME)
     plot_results(FILENAME)

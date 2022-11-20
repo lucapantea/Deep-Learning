@@ -53,13 +53,15 @@ class MLP(object):
         # PUT YOUR CODE HERE  #
         #######################
         self.layers = []
+        first_layer = True
         for layer_units in n_hidden:
             # Append a linear layer & activation
-            self.layers.append(LinearModule(n_inputs, layer_units))
+            self.layers.append(LinearModule(n_inputs, layer_units, first_layer))
             self.layers.append(ELUModule())
 
             # Input of next layer is output of current layer
             n_inputs = layer_units
+            first_layer = False
 
         self.layers.append(LinearModule(n_inputs if len(n_hidden) == 0 else n_hidden[-1], n_classes))
         self.layers.append(SoftMaxModule())
