@@ -20,4 +20,4 @@ source activate ~/.conda/envs/dl2022
 code_dir=./
 
 # running the python experiment
-python $code_dir/question_1-1.py
+python $code_dir/transfer_learning.py

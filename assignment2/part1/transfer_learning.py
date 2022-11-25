@@ -16,7 +16,6 @@ from torchvision.models import mobilenet_v3_small
 device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 print(f'Device running this notebook: {device}')
 
-DATASET_PATH = "../data"
 CHECKPOINT_PATH = "../saved_models/part1"
 RESULT_PATH = "../results"
 
@@ -149,7 +148,7 @@ if __name__ == '__main__':
     plt.savefig(f'{RESULT_PATH}/question_1-1_b.png')
 
     # Question 1.1 c)
-    batch_size = 64 # todo change to 64
+    batch_size = 64
     avg_inference_times_no_grad, no_grad_memory_usage = time_inferences(num_passes=1, no_grad=True, batch_size=batch_size, return_memory_usage=True)
     avg_inference_times_grad_enabled, grad_enabled_memory_usage = time_inferences(num_passes=1, no_grad=False, batch_size=batch_size, return_memory_usage=True)
     fig, ax = plt.subplots(1, 1, tight_layout=True, figsize=(8, 4))
