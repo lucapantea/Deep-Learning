@@ -90,7 +90,7 @@ def train_model(model, lr, batch_size, epochs, data_dir, checkpoint_name, device
     # Load the datasets
     cifar100_train, cifar100_val = get_train_validation_set(data_dir, validation_size=5000, augmentation_name=augmentation_name)
     train_loader = data.DataLoader(dataset=cifar100_train, batch_size=batch_size, shuffle=True,
-                                   drop_last=True, )
+                                   drop_last=True)
     val_loader = data.DataLoader(dataset=cifar100_val, batch_size=batch_size, shuffle=False,
                                  drop_last=False)
 
