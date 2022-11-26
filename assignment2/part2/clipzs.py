@@ -351,7 +351,7 @@ def main():
         targets = targets.to(device)
 
         similarity_logits = clipzs.model_inference(inputs)
-        preds = similarity_logits.softmax(dim=-1).cpu()
+        preds = similarity_logits.softmax(dim=-1)
         correct += (preds.argmax(-1) == targets).sum().item()
         total += targets.shape[0]
 
