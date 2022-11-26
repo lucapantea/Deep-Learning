@@ -40,18 +40,19 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = True
 
 def perform_singular_inference(model, model_weights, num_runs, batch_size=1, no_grad=True, gpu_warmup=True):
-    inference_time, memory_buffer = 0.0, 0.0
+    inference_time, used_memory_mb = 0.0, 0.0
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
     net = model(weights=model_weights)
     net.to(device)
+    net.eval()
     if gpu_warmup:
         num_runs = np.random.randint(3, 10)
-        for run in range(num_runs):
+        for _ in range(num_runs):
             net(torch.rand((3, 224, 224)).unsqueeze(0).to(device))
 
     with torch.no_grad() if no_grad else torch.enable_grad():
-        for run in range(num_runs):
+        for _ in range(num_runs):
             # Empty cache
             torch.cuda.empty_cache()
 
@@ -63,13 +64,47 @@ def perform_singular_inference(model, model_weights, num_runs, batch_size=1, no_
             # Synchronize & record statistics
             torch.cuda.synchronize()
             inference_time = start.elapsed_time(end)
-            memory_buffer = torch.cuda.memory_allocated()
-    return inference_time, memory_buffer
+            used_memory_mb = torch.cuda.memory_allocated() * 1e-6
+    
+    # Delete the network from memory
+    del net
+    return inference_time, used_memory_mb
+
+def perform_all_inferences(model_names, model_weights, num_runs, batch_size, no_grad, gpu_warmup):
+    inference_times, memory_buffer = [], []
+    for model_name in model_names:
+        inference_time, used_memory_mb = perform_singular_inference(models.get(model_name), model_weights, num_runs,
+                                                                    batch_size, no_grad, gpu_warmup)
+        inference_times.append(inference_time)
+        memory_buffer.append(used_memory_mb)
+    return inference_times, memory_buffer
 
 
 if __name__ == '__main__':
-    inference_time, memory_buffer = perform_singular_inference(vgg11, 'IMAGENET1K_V1', num_runs=1, batch_size=1,
-                                                               no_grad=True, gpu_warmup=True)
+    set_seed(42)
+    models = {
+        'vgg11': vgg11,
+        'vgg11_bn': vgg11_bn,
+        'resnet18': resnet18,
+        'resnet34': resnet34,
+        'densenet121': densenet121,
+        'mobilenet_v3_small': mobilenet_v3_small
+    }
+    model_names = models.keys()
+    inference_times_no_grad, memory_buffer_no_grad = perform_all_inferences(model_names, 'IMAGENET1K_V1', num_runs=1, batch_size=64,
+                                                            no_grad=True, gpu_warmup=True)
+    inference_times_grad, memory_buffer_grad = perform_all_inferences(model_names, 'IMAGENET1K_V1', num_runs=1, batch_size=64,
+                                                            no_grad=False, gpu_warmup=True)
+    fig, ax = plt.subplots(1, 1, tight_layout=True, figsize=(8, 4))
+    # Inference speed per model
+    ax.xaxis.set_tick_params(rotation=10)
+    ax.set_xlabel('Pre-Trained Models')
+    ax.set_ylabel('GPU vRAM usage (MB)')
+    ax.plot(model_names, memory_buffer_no_grad, 'o', label="With torch.no_grad()")
+    ax.plot(model_names, memory_buffer_grad, 'o', label="With torch.grad_enabled()")
+    plt.legend()
+    plt.savefig(f'{RESULT_PATH}/question_1-1_c_updated.png')
+
 
 # Initializes the models if not downloaded already. Performs (optionally) GPU warmup.
 # def init_models(model_weights, gpu_warmup=False):

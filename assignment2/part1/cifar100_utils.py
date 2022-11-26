@@ -32,13 +32,26 @@ def add_augmentation(augmentation_name, transform_list):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-
     # Create a new transformation based on the augmentation_name.
-    pass
-
     # Add the new transformation to the list.
-    pass
-
+    match augmentation_name:
+        case 'RandomHorizontalFlip': 
+            transform_list.append(transforms.RandomHorizontalFlip())
+        case 'RandomResizedCrop': 
+            transform_list.append(transforms.RandomResizedCrop((32,32),scale=(0.8,1.0),ratio=(0.9,1.1)))
+        case 'ColourJitter': 
+            transform_list.append(transforms.ColorJitter())
+        case 'RandomAffine':
+            transform_list.append(transforms.RandomAffine(0, shear=10, scale=(0.8,1.2)))
+        case 'all':
+            transform_list.extend([
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomResizedCrop((32,32),scale=(0.8,1.0),ratio=(0.9,1.1)),
+                transforms.ColorJitter(),
+                transforms.RandomAffine(0, shear=10, scale=(0.8,1.2))
+            ])
+        case _:
+            print('Augmentation transform not known.')
     #######################
     # END OF YOUR CODE    #
     #######################

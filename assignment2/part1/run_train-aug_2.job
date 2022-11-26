@@ -2,12 +2,12 @@
 
 #SBATCH --partition=gpu_shared_course
 #SBATCH --gres=gpu:1
-#SBATCH --job-name=question_1-1
+#SBATCH --job-name=train-RandomResizedCrop
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
-#SBATCH --time=00:00:10
-#SBATCH --mem=3200M
-#SBATCH --output=slurm_output_%A.out
+#SBATCH --time=04:00:00
+#SBATCH --mem=32000M
+#SBATCH --output=slurm_output_train-%x.out
 
 module purge
 module load 2021
@@ -15,9 +15,8 @@ module load Anaconda3/2021.05
 
 # activate the environment
 source activate ~/.conda/envs/dl2022
-
 # specify which directory
 code_dir=./
 
-# running the python experiment
-python $code_dir/transfer_learning.py
+# running the training script
+python $code_dir/train.py --augmentation_name 'RandomResizedCrop'

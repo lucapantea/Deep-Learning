@@ -88,7 +88,7 @@ def train_model(model, lr, batch_size, epochs, data_dir, checkpoint_name, device
     #######################
 
     # Load the datasets
-    cifar100_train, cifar100_val = get_train_validation_set(data_dir)
+    cifar100_train, cifar100_val = get_train_validation_set(data_dir, validation_size=5000, augmentation_name=augmentation_name)
     train_loader = data.DataLoader(dataset=cifar100_train, batch_size=batch_size, shuffle=True,
                                    drop_last=True, )
     val_loader = data.DataLoader(dataset=cifar100_val, batch_size=batch_size, shuffle=False,
@@ -214,16 +214,6 @@ def main(lr, batch_size, epochs, data_dir, seed, augmentation_name):
     # Load the model
     model = get_model()
     model.to(device)
-
-    # Get the augmentation to use
-    from torchvision import transforms
-    augmentation_name = transforms.Compose(
-        transforms=[transforms.RandomHorizontalFlip(),
-                    transforms.RandomAffine(0, shear=10, scale=(0.8,1.2)),
-                    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2), 
-                    transforms.ToTensor(),
-                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                    ])
 
     # Train the model
     best_model = train_model(model, lr, batch_size, epochs, data_dir,
