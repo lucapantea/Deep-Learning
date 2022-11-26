@@ -154,25 +154,17 @@ class ZeroshotCLIP(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        # Tokenize each text prompt using CLIP's tokenizer.
+        text_inputs = clip.tokenize(prompts).to(device)
+        with torch.no_grad():
+            # Compute the text features (encodings) for each prompt.
+            text_features = clip_model.encode_text(text_inputs)
 
-        # TODO: Implement the precompute_text_features function.
+        # Normalize the text features.
+        text_features /= text_features.norm(dim=-1, keepdim=True)
 
-        # Instructions:
-        # - Given a list of prompts, compute the text features for each prompt.
-
-        # Steps:
-        # - Tokenize each text prompt using CLIP's tokenizer.
-        # - Compute the text features (encodings) for each prompt.
-        # - Normalize the text features.
-        # - Return a tensor of shape (num_prompts, 512).
-
-        # Hint:
-        # - Read the CLIP API documentation for more details:
-        #   https://github.com/openai/CLIP#api
-
-        # remove this line once you implement the function
-        raise NotImplementedError("Implement the precompute_text_features function.")
-
+        # Return a tensor of shape (num_prompts, 512)
+        return text_features
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -191,27 +183,19 @@ class ZeroshotCLIP(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        # Compute the image features (encodings) using the CLIP model.
+        with torch.no_grad():
+            image_features = self.clip_model.encode_image(image)
 
-        # TODO: Implement the model_inference function.
+            # Normalize the image features.
+            image_features /= image_features.norm(dim=-1, keepdim=True)
 
-        # Instructions:
-        # - Given an image, perform the forward pass of the CLIP model,
-        #   i.e., compute the logits w.r.t. each of the prompts defined earlier.
+            # Compute similarity logits between the image features and the text features. (cos similarity)
+            #   You need to multiply the similarity logits with the logit scale (clip_model.logit_scale).
+            similarity_logits = (100.0 * image_features @ self.text_features.T) * self.clip_model.logit_scale
 
-        # Steps:
-        # - Compute the image features (encodings) using the CLIP model.
-        # - Normalize the image features.
-        # - Compute similarity logits between the image features and the text features.
-        #   You need to multiply the similarity logits with the logit scale (clip_model.logit_scale).
-        # - Return logits of shape (num_classes,).
-
-        # Hint:
-        # - Read the CLIP API documentation for more details:
-        #   https://github.com/openai/CLIP#api
-
-        # remove this line once you implement the function
-        raise NotImplementedError("Implement the model_inference function.")
-
+        # Return logits of shape (num_classes,).
+        return similarity_logits
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -358,28 +342,27 @@ def main():
     #######################
     # PUT YOUR CODE HERE  #
     #######################
+    correct, total = 0, 0
+    # Iterate over the dataloader
+    for step, data in enumerate(loader, 0):
+        # For each image in the batch, get the predicted class
+        inputs, targets = data
+        inputs = inputs.to(device)
+        targets = targets.to(device)
 
-    # TODO: Implement the inference loop
+        similarity_logits = clipzs.model_inference(inputs)
+        preds = similarity_logits.softmax(dim=-1).cpu()
+        correct += (preds.argmax(-1) == targets).sum().item()
+        total += targets.shape[0]
 
-    # Steps:
-    # - Iterate over the dataloader
-    # - For each image in the batch, get the predicted class
-    # - Update the accuracy meter
-
-    # Hints:
-    # - Before filling this part, you should first complete the ZeroShotCLIP class
-    # - Updating the accuracy meter is as simple as calling top1.update(accuracy, batch_size)
-    # - You can use the model_inference method of the ZeroshotCLIP class to get the logits
-
-    # you can remove the following line once you have implemented the inference loop
-    raise NotImplementedError("Implement the inference loop")
-
+        # Update the accuracy meter
+        top1.update(correct/total, total)
     #######################
     # END OF YOUR CODE    #
     #######################
 
     print(
-        f"Zero-shot CLIP top-1 accuracy on {args.dataset}/{args.split}: {top1.val*100}"
+        f"Zero-shot CLIP top-1 accuracy on {args.dataset}/{args.split}: {top1.avg*100}"
     )
 
 
