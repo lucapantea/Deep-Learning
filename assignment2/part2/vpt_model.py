@@ -105,7 +105,7 @@ class CustomCLIP(nn.Module):
         # PUT YOUR CODE HERE  #
         #######################
         # Add the prompt to the image using self.prompt_learner.
-        image = self.prompt_learner(image)  # todo ?
+        image = self.prompt_learner(image)
 
         # Compute the image features (encodings) using the CLIP model.
         with torch.no_grad():
