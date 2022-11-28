@@ -43,6 +43,7 @@ class PadPrompter(nn.Module):
         base = torch.zeros((1, 3, image_size-2*pad_size, image_size-2*pad_size))
         self._prompt = torch.cat([self.pad_left.data, base, self.pad_right.data], dim=3)
         self._prompt = torch.cat([self.pad_up.data, self._prompt, self.pad_down.data], dim=2)
+        self._prompt = self._prompt.to(args.device)
         #######################
         # END OF YOUR CODE    #
         #######################
