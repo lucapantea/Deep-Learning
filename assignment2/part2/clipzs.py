@@ -192,7 +192,7 @@ class ZeroshotCLIP(nn.Module):
 
             # Compute similarity logits between the image features and the text features. (cos similarity)
             #   You need to multiply the similarity logits with the logit scale (clip_model.logit_scale).
-            similarity_logits = (100.0 * image_features @ self.text_features.T) * self.clip_model.logit_scale
+            similarity_logits = (100.0 * image_features @ self.text_features.T) * self.self.logit_scale
 
         # Return logits of shape (num_classes,).
         return similarity_logits
