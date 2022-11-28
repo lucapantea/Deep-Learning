@@ -1,0 +1,33 @@
+#!/bin/bash -l
+
+#SBATCH --partition=gpu_shared_course
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=Transfer_learning-augmentation_experiment
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=3
+#SBATCH --time=08:00:00
+#SBATCH --mem=32000M
+#SBATCH --output=slurm_output_train-%x.out
+
+module purge
+module load 2021
+module load Anaconda3/2021.05
+
+# activate the environment
+source activate ~/.conda/envs/dl2022
+
+# specify which directory
+code_dir=./
+
+# Augmentation names
+augmentations=('RandomHorizontalFlip' 'RandomResizedCrop' 'ColourJitter' 'RandomAffine' 'all')
+
+# Vanilla
+echo "Running experiment on CIFAR100 with no augmentation."
+python $code_dir/train.py
+
+# With augmentations
+for aug in "${augmentations[@]}"; do
+    echo "Running experiment on CIFAR100 with augmentation $aug."
+    python $code_dir/train.py \
+        --augmentation_name $aug
