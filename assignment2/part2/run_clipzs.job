@@ -16,7 +16,7 @@ module load Anaconda3/2021.05
 # activate the environment
 source activate ~/.conda/envs/dl2022
 
-root=../part1/data
+root=./data
 code_dir=./
 
 # Runs: Zero-shot CLIP on CIFAR-10/CIFAR-100 with standard text prompt, on both train & test data

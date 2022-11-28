@@ -215,8 +215,9 @@ class Learner:
             self.optimizer.zero_grad()
 
             # Perform forward pass & calculate loss
-            output = self.vpt(images)
+            output = self.vpt.forward(images)
             loss = self.criterion(output, target)
+            loss.requires_grad = True
 
             # Perform backward pass & update params
             loss.backward()
