@@ -202,8 +202,11 @@ def main(lr, batch_size, epochs, data_dir, seed, augmentation_name):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-    MODEL_NAME = 'modified_resnet.pth'
-    CHECKPOINT_PATH = '../saved_models/part1'
+    if augmentation_name is None:
+        MODEL_NAME = f'modified_resnet18_vanilla.pth'
+    else:
+        MODEL_NAME = f'modified_resnet18_{augmentation_name}.pth'
+    CHECKPOINT_PATH = '../part2/save/models'
 
     # Set the seed for reproducibility
     set_seed(seed)

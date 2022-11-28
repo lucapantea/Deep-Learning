@@ -123,3 +123,6 @@ def save_checkpoint(state, args, is_best=False, filename="checkpoint.pth.tar"):
     if is_best:
         shutil.copyfile(savefile, bestfile)
         print("saved best file")
+
+class DummyArgs:
+    pass

@@ -2,7 +2,7 @@
 
 #SBATCH --partition=gpu_shared_course
 #SBATCH --gres=gpu:1
-#SBATCH --job-name=CLIPVP-CIFAR
+#SBATCH --job-name=CLIPVP-CIFAR-prompt_1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
 #SBATCH --time=10:00:00
@@ -30,9 +30,9 @@ epochs=20
 root=./data
 
 
-datasets=(cifar10, cifar100)
-methods=(fixed_patch, padding, random_patch)
-prompt_sizes=(1)
+datasets=("cifar10" "cifar100")
+methods=("fixed_patch" "padding" "random_patch")
+prompt_sizes=(1 1 1)
 
 for dataset in "${datasets[@]}"; do
     for i in "${!methods[@]}"; do
@@ -46,7 +46,7 @@ for dataset in "${datasets[@]}"; do
             --epochs $epochs \
             --method $method \
             --prompt_size $prompt_size \
-            --root $root
+            --root $root \
             --visualize_prompt
     done
 done

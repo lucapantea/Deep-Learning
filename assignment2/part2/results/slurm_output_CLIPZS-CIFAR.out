@@ -19,7 +19,7 @@ List of prompts:
  'This is a photo of a truck']
 Precomputing text features
 Iterating over train set of cifar10
-Zero-shot CLIP top-1 accuracy on cifar10/train: 88.70797711299222
+Zero-shot CLIP top-1 accuracy on cifar10/train: 88.68871984032928
 /home/lcur0630/.conda/envs/dl2022/lib/python3.10/site-packages/torch/utils/data/dataloader.py:554: UserWarning: This DataLoader will create 12 worker processes in total. Our suggested max number of worker in current system is 3, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
   warnings.warn(_create_warning_msg(
 Files already downloaded and verified
@@ -41,7 +41,7 @@ List of prompts:
  'This is a photo of a truck']
 Precomputing text features
 Iterating over test set of cifar10
-Zero-shot CLIP top-1 accuracy on cifar10/test: 89.24340666049389
+Zero-shot CLIP top-1 accuracy on cifar10/test: 89.23164192468535
 /home/lcur0630/.conda/envs/dl2022/lib/python3.10/site-packages/torch/utils/data/dataloader.py:554: UserWarning: This DataLoader will create 12 worker processes in total. Our suggested max number of worker in current system is 3, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
   warnings.warn(_create_warning_msg(
 Files already downloaded and verified
@@ -153,7 +153,7 @@ List of prompts:
  'This is a photo of a worm']
 Precomputing text features
 Iterating over train set of cifar100
-Zero-shot CLIP top-1 accuracy on cifar100/train: 63.77063483752098
+Zero-shot CLIP top-1 accuracy on cifar100/train: 63.72970418456546
 /home/lcur0630/.conda/envs/dl2022/lib/python3.10/site-packages/torch/utils/data/dataloader.py:554: UserWarning: This DataLoader will create 12 worker processes in total. Our suggested max number of worker in current system is 3, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
   warnings.warn(_create_warning_msg(
 Files already downloaded and verified
@@ -265,4 +265,4 @@ List of prompts:
  'This is a photo of a worm']
 Precomputing text features
 Iterating over test set of cifar100
-Zero-shot CLIP top-1 accuracy on cifar100/test: 63.119333848861935
+Zero-shot CLIP top-1 accuracy on cifar100/test: 63.14210020248064

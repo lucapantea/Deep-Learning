@@ -1,0 +1,43 @@
+#!/bin/bash -l
+
+#SBATCH --partition=gpu_shared_course
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=ROBUSTNESS-test_noise
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=3
+#SBATCH --time=15:00:00
+#SBATCH --mem=32000M
+#SBATCH --output=slurm_output_%x.out
+
+module purge
+module load 2021
+module load Anaconda3/2021.05
+
+# activate the environment
+source activate ~/.conda/envs/dl2022
+
+# Run 1: Visual prompting CLIP on CIFAR-10 with standard text prompt
+code_dir=./
+
+# Standard constants
+arch="ViT-B/32"
+text_prompt_template="This is a photo of a {}"
+epochs=20
+
+root=./data
+save=./save/models
+datasets=("cifar10" "cifar100")
+model_paths=$(find ./save/models -type f -path '*checkpoint*')
+
+for dataset in "${datasets[@]}"; do
+    for saved_model in "${model_paths[@]}"; do
+        echo "Running experiment on $dataset with $saved_model."
+        python $code_dir/robustness.py \
+            --dataset $dataset \
+            --resume $saved_model \
+            --arch $arch \
+            --visualize_prompt \
+            --test_noise \
+            --evaluate
+    done
+done
