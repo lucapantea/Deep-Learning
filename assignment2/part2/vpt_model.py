@@ -76,17 +76,14 @@ class CustomCLIP(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        # Tokenize each text prompt using CLIP's tokenizer.
+        text_inputs = clip.tokenize(prompts).to(args.device)
+        with torch.no_grad():
+            # Compute the text features (encodings) for each prompt.
+            text_features = clip_model.encode_text(text_inputs)
 
-        # TODO: Write code to compute text features.
-        # Hint: You can use the code from clipzs.py here!
-
-        # Instructions:
-        # - Given a list of prompts, compute the text features for each prompt.
-        # - Return a tensor of shape (num_prompts, 512).
-
-        # remove this line once you implement the function
-        raise NotImplementedError("Write the code to compute text features.")
-
+        # Normalize the text features.
+        text_features /= text_features.norm(dim=-1, keepdim=True)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -107,21 +104,22 @@ class CustomCLIP(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        # Add the prompt to the image using self.prompt_learner.
+        image = self.prompt_learner(image)
 
-        # TODO: Implement the forward function. This is not exactly the same as
-        # the model_inferece function in clipzs.py! Please see the steps below.
+        # Compute the image features (encodings) using the CLIP model.
+        with torch.no_grad():
+            image_features = self.clip_model.encode_image(image)
 
-        # Steps:
-        # - [!] Add the prompt to the image using self.prompt_learner.
-        # - Compute the image features using the CLIP model.
-        # - Normalize the image features.
-        # - Compute similarity logits between the image features and the text features.
-        # - You need to multiply the similarity logits with the logit scale (clip_model.logit_scale).
-        # - Return logits of shape (num_classes,).
+            # Normalize the image features.
+            image_features /= image_features.norm(dim=-1, keepdim=True)
 
-        # remove this line once you implement the function
-        raise NotImplementedError("Implement the model_inference function.")
+            # Compute similarity logits between the image features and the text features. (cos similarity)
+            #   You need to multiply the similarity logits with the logit scale (clip_model.logit_scale).
+            similarity_logits = (100.0 * image_features @ self.text_features.T) * self.clip_model.logit_scale
 
+        # Return logits of shape (num_classes,).
+        return similarity_logits
         #######################
         # END OF YOUR CODE    #
         #######################

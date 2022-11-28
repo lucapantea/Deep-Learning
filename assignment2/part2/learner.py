@@ -63,11 +63,9 @@ class Learner:
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        # TODO: Turn off gradients in both the image and the text encoder
-        # Note: You need to keep the visual prompt's parameters trainable
-        # Hint: Check for "prompt_learner" in the parameters' names
-
-        raise NotImplementedError
+        for name, param in self.vpt.named_parameters():
+            if not name.startswith('prompt_learner.'):
+                param.requires_grad = False
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -209,18 +207,20 @@ class Learner:
             #######################
             # PUT YOUR CODE HERE  #
             #######################
+            # Move the images/targets to the device
+            images = images.to(self.device)
+            target = target.to(self.device)
 
-            # TODO: Implement the training step for a single batch
+            # Set the gradients to zero
+            self.optimizer.zero_grad()
 
-            # Steps ( your usual training loop :) ):
-            # - Set the gradients to zero
-            # - Move the images/targets to the device
-            # - Perform a forward pass (using self.vpt)
-            # - Compute the loss (using self.criterion)
-            # - Perform a backward pass
-            # - Update the parameters
+            # Perform forward pass & calculate loss
+            output = self.vpt(images)
+            loss = self.criterion(output, target)
 
-            raise NotImplementedError
+            # Perform backward pass & update params
+            loss.backward()
+            self.optimizer.step()
             #######################
             # END OF YOUR CODE    #
             #######################
@@ -277,15 +277,13 @@ class Learner:
                 #######################
                 # PUT YOUR CODE HERE  #
                 #######################
+                # Move the images/targets to the device
+                images = images.to(self.device)
+                target = target.to(self.device)
 
-                # TODO: Implement the evaluation step for a single batch
-
-                # Steps ( your usual evaluation loop :) ):
-                # - Move the images/targets to the device
-                # - Forward pass (using self.vpt)
-                # - Compute the loss (using self.criterion)
-
-                raise NotImplementedError
+                # Forward pass & calculate loss
+                output = self.vpt(images)
+                loss = self.criterion(output, target)
                 #######################
                 # END OF YOUR CODE    #
                 #######################
