@@ -1,0 +1,49 @@
+#!/bin/bash -l
+
+#SBATCH --partition=gpu_shared_course
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=CROSS-DATASET
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=3
+#SBATCH --time=15:00:00
+#SBATCH --mem=32000M
+#SBATCH --output=slurm_output_%x.out
+
+module purge
+module load 2021
+module load Anaconda3/2021.05
+
+# activate the environment
+source activate ~/.conda/envs/dl2022
+
+# Run 1: Visual prompting CLIP on CIFAR-10 with standard text prompt
+code_dir=./
+
+# Standard constants
+arch="ViT-B/32"
+text_prompt_template="This is a photo of a {}"
+epochs=20
+
+root=./data
+save=./save/models
+model_paths_cifar10=$(find ./save/models -type f -path '*cifar10_*checkpoint*')
+model_paths_cifar100=$(find ./save/models -type f -path '*cifar100_*checkpoint*')
+
+for saved_model in "${model_paths_cifar10[@]}"; do
+    echo "Running experiment on CIFAR10 with $saved_model."
+    python $code_dir/robustness.py \
+        --resume $saved_model \
+        --arch $arch \
+        --visualize_prompt \
+        --evaluate
+done
+
+
+for saved_model in "${model_paths_cifar100[@]}"; do
+    echo "Running experiment on CIFAR100 with $saved_model."
+    python $code_dir/robustness.py \
+        --resume $saved_model \
+        --arch $arch \
+        --visualize_prompt \
+        --evaluate
+done
