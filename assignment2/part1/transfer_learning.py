@@ -1,27 +1,20 @@
 # Imports used for this notebook
 import matplotlib.pyplot as plt
 
+import argparse
 import numpy as np
 import torch
-import time
 import os
-
-# Pre-trained models from Pytorch backend
-from torchvision.models import vgg11, vgg11_bn
-from torchvision.models import resnet18, resnet34
-from torchvision.models import densenet121
-from torchvision.models import mobilenet_v3_small
 
 # Device business
 device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 print(f'Device running this notebook: {device}')
 
+DATASET_PATH = "./data"
 CHECKPOINT_PATH = "../saved_models/part1"
-RESULT_PATH = "../results"
 
-# Create checkpoint & results path if it doesn't exist yet
+# Create checkpoint path if it doesn't exist yet
 os.makedirs(CHECKPOINT_PATH, exist_ok=True)
-os.makedirs(RESULT_PATH, exist_ok=True)
 
 # Setting the Pytorch environment for saving the models
 os.environ['TORCH_HOME'] = CHECKPOINT_PATH
@@ -39,191 +32,162 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
 
-def perform_singular_inference(model, model_weights, num_runs, batch_size=1, no_grad=True, gpu_warmup=True):
-    inference_time, used_memory_mb = 0.0, 0.0
+def get_model(model_name):
+    match model_name:
+        case 'vgg11':
+            from torchvision.models import vgg11
+            return vgg11
+        case 'vgg11_bn':
+            from torchvision.models import vgg11_bn
+            return vgg11_bn
+        case 'resnet18':
+            from torchvision.models import resnet18
+            return resnet18
+        case 'resnet34':
+            from torchvision.models import resnet34
+            return resnet34
+        case 'densenet121':
+            from torchvision.models import densenet121
+            return densenet121
+        case 'mobilenet_v3_small':
+            from torchvision.models import mobilenet_v3_small
+            return mobilenet_v3_small
+        case _:
+            print('Model name unknown.')
+
+def run_inference(model_name, model_weights, num_runs=1, no_grad=True, batch_size=1):    
+    # Cuda events for calculating elapsed time
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
-    net = model(weights=model_weights)
-    net.to(device)
-    net.eval()
-    if gpu_warmup:
-        num_runs = np.random.randint(3, 10)
-        for _ in range(num_runs):
-            net(torch.rand((3, 224, 224)).unsqueeze(0).to(device))
+    image_size = (batch_size, 3, 224, 224) 
 
+    # Initialize model
+    model = get_model(model_name)(weights=model_weights).to(device)
+    model.eval()
+
+    # GPU warmup
+    for _ in range(3):
+        model(torch.rand(size=image_size).to(device))
+
+    # Model outputs
+    pred = None
+    inference_times = []
+    memory_buffer = []
+    
+    # Perform inference with given context manager
     with torch.no_grad() if no_grad else torch.enable_grad():
         for _ in range(num_runs):
-            # Empty cache
-            torch.cuda.empty_cache()
-
-            # Record inference time
+            # Start recording the time
             start.record()
-            _ = net(torch.rand((batch_size, 3, 224, 224)).to(device))
+            pred = model(torch.rand(size=image_size).to(device))
             end.record()
 
-            # Synchronize & record statistics
+            # Sync clocks & record stats
             torch.cuda.synchronize()
-            inference_time = start.elapsed_time(end)
-            used_memory_mb = torch.cuda.memory_allocated() * 1e-6
+            inference_times.append(start.elapsed_time(end))
+            memory_buffer.append(torch.cuda.memory_allocated() * 1e-6)
     
-    # Delete the network from memory
-    del net
-    return inference_time, used_memory_mb
-
-def perform_all_inferences(model_names, model_weights, num_runs, batch_size, no_grad, gpu_warmup):
-    inference_times, memory_buffer = [], []
-    for model_name in model_names:
-        inference_time, used_memory_mb = perform_singular_inference(models.get(model_name), model_weights, num_runs,
-                                                                    batch_size, no_grad, gpu_warmup)
-        inference_times.append(inference_time)
-        memory_buffer.append(used_memory_mb)
-    return inference_times, memory_buffer
-
+    del model
+    pred.detach()
+    torch.cuda.empty_cache()
+    return pred, np.mean(inference_times), np.mean(memory_buffer)
 
 if __name__ == '__main__':
     set_seed(42)
+
+    # Initializing models
     models = {
-        'vgg11': vgg11,
-        'vgg11_bn': vgg11_bn,
-        'resnet18': resnet18,
-        'resnet34': resnet34,
-        'densenet121': densenet121,
-        'mobilenet_v3_small': mobilenet_v3_small
+        'vgg11': 69.02,
+        'vgg11_bn': 70.37,
+        'resnet18': 69.758,
+        'resnet34': 73.314,
+        'densenet121': 74.434,
+        'mobilenet_v3_small': 67.668,
     }
-    model_names = models.keys()
-    inference_times_no_grad, memory_buffer_no_grad = perform_all_inferences(model_names, 'IMAGENET1K_V1', num_runs=1, batch_size=64,
-                                                            no_grad=True, gpu_warmup=True)
-    inference_times_grad, memory_buffer_grad = perform_all_inferences(model_names, 'IMAGENET1K_V1', num_runs=1, batch_size=64,
-                                                            no_grad=False, gpu_warmup=True)
-    fig, ax = plt.subplots(1, 1, tight_layout=True, figsize=(8, 4))
-    # Inference speed per model
-    ax.xaxis.set_tick_params(rotation=10)
-    ax.set_xlabel('Pre-Trained Models')
-    ax.set_ylabel('GPU vRAM usage (MB)')
-    ax.plot(model_names, memory_buffer_no_grad, 'o', label="With torch.no_grad()")
-    ax.plot(model_names, memory_buffer_grad, 'o', label="With torch.grad_enabled()")
-    plt.legend()
-    plt.savefig(f'{RESULT_PATH}/question_1-1_c_updated.png')
 
+    # Arguments to run experiment
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--experiment', default=1, type=int,
+                        help='Which experiment int - a):1, b):2, c):3')
 
-# Initializes the models if not downloaded already. Performs (optionally) GPU warmup.
-# def init_models(model_weights, gpu_warmup=False):
-#     for model_name, model in models.items():
-#         models[model_name] = model(weights=model_weights)
-#         models[model_name].to(device)
-#         # Run a couple of fake forward passes
-#         if gpu_warmup:
-#             num_runs = np.random.randint(3, 10)
-#             for run in range(num_runs):
-#                 models[model_name](torch.rand((3, 224, 224)).unsqueeze(0).to(device))
-#
-#
-# # Helper functions for performing the inference times for the models
-# def time_inferences(num_passes, no_grad=True, batch_size=1, return_memory_usage=False):
-#     start = torch.cuda.Event(enable_timing=True)
-#     end = torch.cuda.Event(enable_timing=True)
-#     inference_times = {}
-#     if return_memory_usage:
-#         memory_buffer = []
-#     for model_name, model in models.items():
-#         models[model_name].eval()
-#         times = []
-#         outs = []
-#         with torch.no_grad() if no_grad else torch.enable_grad():
-#             for run in range(num_passes):
-#                 start.record()
-#                 outs.append(models[model_name](torch.rand((batch_size, 3, 224, 224)).to(device)))
-#                 end.record()
-#                 torch.cuda.synchronize()
-#                 times.append(start.elapsed_time(end))
-#         inference_times[model_name] = np.mean(times)
-#         if return_memory_usage:
-#             memory_buffer.append(torch.cuda.memory_allocated()*1e-6) # Converting to MB
-#     if return_memory_usage:
-#         return inference_times, memory_buffer
-#     return inference_times
-#
-# # Helper function for plotting the required graphs
-# def plot_inferences(inference_times, top1_accs):
-#     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, tight_layout=True, figsize=(18, 5))
-#     model_names, times = zip(*inference_times.items())
-#     # Inference speed per model
-#     ax1.xaxis.set_tick_params(rotation=10)
-#     ax1.set_xlabel('Pre-Trained Models')
-#     ax1.set_ylabel('Average Inference Speed (ms)')
-#     ax1.plot(model_names, times, 'o')
-#
-#     # Inference speed vs top1 acc
-#     ax2.set_xlabel('Average Inference Speed (ms)')
-#     ax2.set_ylabel('Model Top-1 accuracy')
-#     for i, model_name in enumerate(model_names):
-#         ax2.plot(times[i], top1_accs[i], "s", label=model_name)
-#
-#     # Inference speed vs #parameters
-#     ax3.set_xlabel('Average Inference Speed (ms)')
-#     ax3.set_ylabel('Model Number of Parameters')
-#     for i, model_name in enumerate(model_names):
-#         num_params = sum(p.numel() for p in models[model_name].parameters())
-#         ax3.plot(times[i], num_params, "D", label=model_name)
-#
-#     # Legend business
-#     box = ax2.get_position()
-#     ax2.set_position([box.x0, box.y0 + box.height * 0.1,
-#                       box.width, box.height * 0.9])
-#     # Put a legend below current axis
-#     ax2.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),
-#                fancybox=True, shadow=True, ncol=3, prop={'size': 13})
-#     # plt.show()
+    args = parser.parse_args()
+    kwargs = vars(args)
 
-# if __name__ == '__main__':
-#     set_seed(42)
-#     # Initializing models
-#     models = {
-#         'vgg11': vgg11,
-#         'vgg11_bn': vgg11_bn,
-#         'resnet18': resnet18,
-#         'resnet34': resnet34,
-#         'densenet121': densenet121,
-#         'mobilenet_v3_small': mobilenet_v3_small
-#     }
-#
-#     # The top-1 accuracies retrieved from the pytorch website
-#     model_top1_accs = [69.02, 70.37, 69.758, 73.314, 74.434, 67.668]
-#
-#     # Using the IMAGENET1K_V1 weights for each model
-#     init_models(model_weights='IMAGENET1K_V1', gpu_warmup=True)
-#
-#     # Question 1.1 a)
-#     avg_inference_times = time_inferences(num_passes=10, no_grad=True, batch_size=1)
-#     plot_inferences(avg_inference_times, model_top1_accs)
-#     plt.savefig(f'{RESULT_PATH}/question_1-1_a.png')
-#
-#     # Question 1.1 b)
-#     avg_inference_times_no_grad = time_inferences(num_passes=10, no_grad=True)
-#     avg_inference_times_grad_enabled = time_inferences(num_passes=10, no_grad=False)
-#     fig, ax = plt.subplots(1, 1, tight_layout=True, figsize=(8, 4))
-#     model_names, times_no_grad = zip(*avg_inference_times_no_grad.items())
-#     times_grad_enabled = list(avg_inference_times_grad_enabled.values())
-#     # Inference speed per model
-#     ax.xaxis.set_tick_params(rotation=10)
-#     ax.set_xlabel('Pre-Trained Models')
-#     ax.set_ylabel('Average Inference Speed (ms)')
-#     ax.plot(model_names, times_no_grad, 'o', label="With torch.no_grad()")
-#     ax.plot(model_names, times_grad_enabled, 'o', label="With torch.grad_enabled()")
-#     plt.legend()
-#     plt.savefig(f'{RESULT_PATH}/question_1-1_b.png')
-#
-#     # Question 1.1 c)
-#     batch_size = 64
-#     avg_inference_times_no_grad, no_grad_memory_usage = time_inferences(num_passes=1, no_grad=True, batch_size=batch_size, return_memory_usage=True)
-#     avg_inference_times_grad_enabled, grad_enabled_memory_usage = time_inferences(num_passes=1, no_grad=False, batch_size=batch_size, return_memory_usage=True)
-#     fig, ax = plt.subplots(1, 1, tight_layout=True, figsize=(8, 4))
-#     model_names, times_no_grad = zip(*avg_inference_times_no_grad.items())
-#     # Inference speed per model
-#     ax.xaxis.set_tick_params(rotation=10)
-#     ax.set_xlabel('Pre-Trained Models')
-#     ax.set_ylabel('GPU vRAM usage (MB)')
-#     ax.plot(model_names, no_grad_memory_usage, 'o', label="With torch.no_grad()")
-#     ax.plot(model_names, grad_enabled_memory_usage, 'o', label="With torch.grad_enabled()")
-#     plt.legend()
-#     plt.savefig(f'{RESULT_PATH}/question_1-1_c.png')
+    match kwargs.get('experiment'):
+        case 1:
+            # Question 1.1 a)
+            inference_times_no_grad, memory_used_no_grad = [], []
+
+            for model_name in models.keys():
+                _, inference_speed, _ = run_inference(model_name, 'IMAGENET1K_V1', num_runs=5, no_grad=True, batch_size=1)
+                inference_times_no_grad.append(inference_speed)
+
+            fig, (ax1, ax2, ax3) = plt.subplots(1, 3, tight_layout=True, figsize=(18, 5))
+
+            # Inference speed per model
+            ax1.set_xlabel('Pre-Trained Models')
+            ax1.set_ylabel('Average Inference Speed (ms)')
+            ax1.xaxis.set_tick_params(rotation=10)
+            ax1.plot(models.keys(), inference_times_no_grad, 'o')
+
+            # Inference speed for each model vs top1 acc
+            ax2.set_xlabel('Average Inference Speed (ms)')
+            ax2.set_ylabel('Model Top-1 accuracy')
+            for i, model_name in enumerate(models.keys()):
+                ax2.plot(inference_times_no_grad[i], models[model_name], "s", label=model_name)
+
+            # Inference speed vs number of parameters
+            ax3.set_xlabel('Average Inference Speed (ms)')
+            ax3.set_ylabel('Model Number of Parameters')
+            for i, model_name in enumerate(models.keys()):
+                num_params = sum(p.numel() for p in get_model(model_name)(weights='IMAGENET1K_V1').parameters())
+                ax3.plot(inference_times_no_grad[i], num_params, "D", label=model_name)
+
+            # Legend business
+            box = ax2.get_position()
+            ax2.set_position([box.x0, box.y0 + box.height * 0.1,
+                                box.width, box.height * 0.9])
+            ax2.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),
+                        fancybox=True, shadow=True, ncol=3, prop={'size': 13})
+            plt.savefig(f'./question_1-1_a.png')
+        case 2:
+            # Question 1.1 b)
+            inference_times_no_grad = []
+            inference_times_grad = []
+
+            for model_name in models.keys():
+                _, inference_speed_no_grad, _ = run_inference(model_name, 'IMAGENET1K_V1', num_runs=5, no_grad=True, batch_size=1)
+                _, inference_speed_grad, _ = run_inference(model_name, 'IMAGENET1K_V1', num_runs=5, no_grad=False, batch_size=1)
+                inference_times_no_grad.append(inference_speed_no_grad)
+                inference_times_grad.append(inference_speed_grad)
+
+            fig, ax = plt.subplots(1, 1, tight_layout=True, figsize=(8, 4))
+
+            # Inference speed per model
+            ax.set_xlabel('Pre-Trained Models')
+            ax.set_ylabel('Average Inference Speed (ms)')
+            ax.xaxis.set_tick_params(rotation=10)
+            ax.plot(models.keys(), inference_times_no_grad, 'o', label="With torch.no_grad()")
+            ax.plot(models.keys(), inference_times_grad, 'o', label="With torch.grad_enabled()")
+            plt.legend()
+            plt.savefig(f'./question_1-1_b.png')
+
+        case 3:
+            # Question 1.1 c)
+            fig, ax = plt.subplots(1, 1, tight_layout=True, figsize=(8, 4))
+            memory_used_no_grad = []
+            memory_used_grad = []
+            for model_name in models.keys():
+                _, _, memory_no_grad = run_inference(model_name, 'IMAGENET1K_V1', num_runs=1, no_grad=True, batch_size=64)
+                _, _, memory_grad = run_inference(model_name, 'IMAGENET1K_V1', num_runs=1, no_grad=False, batch_size=64)
+                memory_used_no_grad.append(memory_no_grad)
+                memory_used_grad.append(memory_grad)
+
+            # Memory usage per model
+            ax.set_xlabel('Pre-Trained Models')
+            ax.set_ylabel('GPU vRAM usage (MB)')
+            ax.xaxis.set_tick_params(rotation=10)
+            ax.plot(models.keys(), memory_used_no_grad, 'o', label="With torch.no_grad()")
+            ax.plot(models.keys(), memory_used_grad, 'o', label="With torch.grad_enabled()")
+            plt.legend()
+            plt.savefig(f'./question_1-1_c.png')

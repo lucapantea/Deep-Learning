@@ -20,7 +20,7 @@ source activate ~/.conda/envs/dl2022
 code_dir=./
 
 # Augmentation names
-augmentations=('RandomHorizontalFlip' 'RandomResizedCrop' 'ColourJitter' 'RandomAffine' 'all')
+augmentations=(RandomHorizontalFlip RandomResizedCrop ColourJitter RandomAffine all none)
 
 # Vanilla
 echo "Running experiment on CIFAR100 with no augmentation."
@@ -31,3 +31,4 @@ for aug in "${augmentations[@]}"; do
     echo "Running experiment on CIFAR100 with augmentation $aug."
     python $code_dir/train.py \
         --augmentation_name $aug
+done

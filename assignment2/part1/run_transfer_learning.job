@@ -1,13 +1,13 @@
-#!/bin/bash
+#!/bin/bash -l
 
 #SBATCH --partition=gpu_shared_course
 #SBATCH --gres=gpu:1
-#SBATCH --job-name=question_1-1
+#SBATCH --job-name=runtime_experiments
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
-#SBATCH --time=00:00:10
-#SBATCH --mem=3200M
-#SBATCH --output=slurm_output_%A.out
+#SBATCH --time=00:05:00
+#SBATCH --mem=32000M
+#SBATCH --output=slurm_output_%x.out
 
 module purge
 module load 2021
@@ -20,4 +20,6 @@ source activate ~/.conda/envs/dl2022
 code_dir=./
 
 # running the python experiment
-python $code_dir/transfer_learning.py
+python $code_dir/transfer_learning.py --experiment 1
+python $code_dir/transfer_learning.py --experiment 2
+python $code_dir/transfer_learning.py --experiment 3
