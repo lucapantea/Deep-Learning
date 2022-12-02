@@ -24,7 +24,6 @@ import torchvision.models as models
 
 from cifar100_utils import get_train_validation_set, get_test_set
 
-
 def set_seed(seed):
     """
     Function for setting the seed for reproducibility.
@@ -187,7 +186,7 @@ def evaluate_model(model, data_loader, device):
     return accuracy
 
 
-def main(lr, batch_size, epochs, data_dir, seed, augmentation_name):
+def main(lr, batch_size, epochs, data_dir, seed, augmentation_name, **kwargs):
     """
     Main function for training and testing the model.
 
@@ -215,20 +214,28 @@ def main(lr, batch_size, epochs, data_dir, seed, augmentation_name):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Load the model
-    model = get_model()
-    model.to(device)
+    if not kwargs.get('resume'):
+        model = get_model()
+        model.to(device)
+    else:
+        print("=> loading checkpoint '{}'".format(kwargs.get('resume')))
+        model = models.resnet18(weights='IMAGENET1K_V1')
+        model.fc = nn.Linear(model.fc.in_features, 100)
+        model.load_state_dict(torch.load(kwargs.get('resume')))
+        model.to(device)
 
     # Train the model
-    best_model = train_model(model, lr, batch_size, epochs, data_dir,
-                             checkpoint_name=CHECKPOINT_PATH + '/' + MODEL_NAME,
-                             device=device, augmentation_name=augmentation_name)
+    if not kwargs.get('evaluate'):
+        model = train_model(model, lr, batch_size, epochs, data_dir,
+                            checkpoint_name=CHECKPOINT_PATH + '/' + MODEL_NAME,
+                            device=device, augmentation_name=augmentation_name)
 
-    # Initialize the test data loader
-    cifar100_test = get_test_set(data_dir)
+    cifar100_test = get_test_set(data_dir, add_noise=args.test_noise)
     test_loader = data.DataLoader(dataset=cifar100_test, batch_size=batch_size, shuffle=False,
                                   drop_last=False)
+
     # Evaluate the model on the test set
-    test_accuracy = evaluate_model(best_model, test_loader, device)
+    test_accuracy = evaluate_model(model, test_loader, device)
     print(f'Accuracy of ResNet18 on the test set: {test_accuracy:.3f}')
     #######################
     # END OF YOUR CODE    #
@@ -252,6 +259,12 @@ if __name__ == '__main__':
                         help='Data directory where to store/find the CIFAR100 dataset.')
     parser.add_argument('--augmentation_name', default=None, type=str,
                         help='Augmentation to use.')
+    parser.add_argument('--resume', default=None, type=str,
+                        help='Path to model .pth (checkpoint) file to resume from.')
+    parser.add_argument("--evaluate", default=False, action="store_true", 
+                        help="evaluate model test set")
+    parser.add_argument("--test_noise", default=False, action="store_true", 
+                        help="intorudce gaussian noise in test set")
 
     args = parser.parse_args()
     kwargs = vars(args)

@@ -20,7 +20,6 @@ from torchvision.datasets import CIFAR100
 from torch.utils.data import random_split
 from torchvision import transforms
 
-
 def add_augmentation(augmentation_name, transform_list):
     """
     Adds an augmentation transform to the list.
@@ -104,7 +103,7 @@ def get_train_validation_set(data_dir, validation_size=5000, augmentation_name=N
     return train_dataset, val_dataset
 
 
-def get_test_set(data_dir):
+def get_test_set(data_dir, add_noise=False):
     """
     Returns the test dataset of CIFAR100.
 
@@ -117,9 +116,31 @@ def get_test_set(data_dir):
     mean = (0.5071, 0.4867, 0.4408)
     std = (0.2675, 0.2565, 0.2761)
 
-    test_transform = transforms.Compose([transforms.Resize((224, 224)),
-                                        transforms.ToTensor(),
-                                        transforms.Normalize(mean, std)])
+    test_transform = [transforms.Resize((224, 224)),
+                     transforms.ToTensor(),
+                     transforms.Normalize(mean, std)]
 
+    if add_noise:
+        test_transform.append(AddGaussianNoise())
+    
+    test_transform = transforms.Compose(test_transform)
     test_dataset = CIFAR100(root=data_dir, train=False, download=True, transform=test_transform)
     return test_dataset
+
+# Extra for robustness testing for ResNet
+class AddGaussianNoise(torch.nn.Module):
+    def __init__(self, mean=0., std=0.1):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, img):
+        #######################
+        # PUT YOUR CODE HERE  #
+        #######################
+        return img + torch.randn(size=img.size()) * self.std + self.mean
+        #######################
+        # END OF YOUR CODE    #
+        #######################
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
