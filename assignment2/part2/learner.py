@@ -25,7 +25,7 @@ from clip import clip
 from torch.cuda.amp import GradScaler
 import time
 
-
+from vp import CheckerBoardPrompter
 from tqdm import tqdm
 from vpt_model import CustomCLIP
 from utils import cosine_lr, AverageMeter, ProgressMeter, accuracy, save_checkpoint, set_seed
@@ -221,6 +221,11 @@ class Learner:
 
             # Perform backward pass & update params
             loss.backward()
+
+            # Checkboard pattern necessity:
+            if isinstance(self.vpt.prompt_learner, CheckerBoardPrompter):
+                self.vpt.prompt_learner.prompt.data *= self.vpt.prompt_learner.mask
+
             self.optimizer.step()
             #######################
             # END OF YOUR CODE    #

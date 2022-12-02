@@ -2,10 +2,10 @@
 
 #SBATCH --partition=gpu_shared_course
 #SBATCH --gres=gpu:1
-#SBATCH --job-name=CLIPVP-CIFAR-prompt_1
+#SBATCH --job-name=CLIPVP-CIFAR-all_prompts
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
-#SBATCH --time=10:00:00
+#SBATCH --time=15:00:00
 #SBATCH --mem=32000M
 #SBATCH --output=slurm_output_%x.out
 
@@ -31,22 +31,20 @@ root=./data
 
 
 datasets=("cifar10" "cifar100")
-methods=("fixed_patch" "padding" "random_patch")
-prompt_sizes=(1 1 1)
+methods=(padding random_patch fixed_patch)
+prompt_sizes=(1 5 10)
 
 for dataset in "${datasets[@]}"; do
-    for i in "${!methods[@]}"; do
-        method=${methods[$i]}
-        prompt_size=${prompt_sizes[$i]}
-        echo "Running experiment on $dataset with $method and prompt size $prompt_size"
-        python $code_dir/main.py \
-            --dataset $dataset \
-            --arch $arch \
-            --text_prompt_template "$text_prompt_template" \
-            --epochs $epochs \
-            --method $method \
-            --prompt_size $prompt_size \
-            --root $root \
-            --visualize_prompt
+    for method in "${methods[@]}"; do
+        for prompt_size in "${prompt_sizes[@]}"; do
+            python $code_dir/main.py \
+                --arch $arch \
+                --text_prompt_template "$text_prompt_template" \
+                --epochs $epochs \
+                --method $method \
+                --prompt_size $prompt_size \
+                --root $root \
+                --visualize_prompt
+        done
     done
 done

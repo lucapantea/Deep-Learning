@@ -26,6 +26,7 @@ from vp import (
     PadPrompter,
     RandomPatchPrompter,
     FixedPatchPrompter,
+    CheckerBoardPrompter,
 )
 
 
@@ -33,6 +34,7 @@ PROMPT_TYPES = {
     "padding": PadPrompter,
     "random_patch": RandomPatchPrompter,
     "fixed_patch": FixedPatchPrompter,
+    "checkerboard": CheckerBoardPrompter,
 }
 
 
@@ -142,7 +144,7 @@ class CustomCLIP(nn.Module):
     @torch.no_grad()
     def visualize_prompt(self, method):
         """Visualizes the prompt."""
-        fake_img = torch.ones(1, 3, 224, 224)
+        fake_img = torch.zeros(1, 3, 224, 224)
         prompted_img = self.prompt_learner(fake_img)[0].cpu()
         prompted_img = torch.clamp(prompted_img, 0, 1)
 

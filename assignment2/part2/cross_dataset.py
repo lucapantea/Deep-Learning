@@ -145,9 +145,9 @@ def main():
     args = parse_option()
     print(args)
 
-    # assert (
-    #     args.resume
-    # ), "Set argument --resume to set the path to the best saved model checkpoint"
+    assert (
+        args.resume
+    ), "Set argument --resume to set the path to the best saved model checkpoint"
 
     learn = Learner(args)
 
@@ -217,7 +217,6 @@ def main():
         #######################
         print('Offsetting the targets of CIFAR100 by 10')
         cifar100_test.targets = [target + 10 for target in cifar100_test.targets]
-        import numpy as np
         #######################
         # END OF YOUR CODE    #
         #######################
