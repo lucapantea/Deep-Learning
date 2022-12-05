@@ -153,11 +153,8 @@ class CNNDecoder(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        # print('latent embedding', z.shape)
         x = self.latent(z)
-        # print('after latent layer', x.shape)
         x = x.reshape(x.shape[0], -1, 4, 4)
-        # print('after reshape', x.shape)
         x = self.net(x)
         # print('decoder', x.shape)
         #######################

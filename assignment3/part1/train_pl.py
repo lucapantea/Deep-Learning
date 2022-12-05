@@ -102,7 +102,7 @@ class VAE(pl.LightningModule):
         # PUT YOUR CODE HERE  #
         #######################
         # Sample from latent space and pass through decoder
-        z = torch.randn(size=(batch_size, self.hparams.get('z_dim')))
+        z = torch.randn(size=(batch_size, self.hparams.get('z_dim')), device=self.device)
         x = self.decoder(z).softmax(1)
 
         # Prob distribution is over channels, have to flatten image to obtain prob distr over M
