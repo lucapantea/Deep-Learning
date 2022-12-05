@@ -103,7 +103,13 @@ class VAE(pl.LightningModule):
         #######################
         # Sample from latent space and pass through decoder
         z = torch.randn(size=(batch_size, self.hparams.get('z_dim')))
-        x_samples = self.decoder(z)
+        x = self.decoder(z).softmax(1)
+
+        # Prob distribution is over channels, have to flatten image to obtain prob distr over M
+        shape_x = x.shape
+        x = torch.flatten(x.permute(0, 3, 2, 1), end_dim=-2)
+        x_samples = torch.multinomial(x, num_samples=1)
+        x_samples = x_samples.reshape(shape_x[0], shape_x[2], shape_x[3]).unsqueeze(1)
         #######################
         # END OF YOUR CODE    #
         #######################
