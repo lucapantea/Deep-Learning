@@ -70,10 +70,20 @@ class VAE(pl.LightningModule):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        L_rec = None
-        L_reg = None
-        bpd = None
-        raise NotImplementedError
+        # Encoding the images in a given batch
+        mean, log_std = self.encoder(imgs)
+
+        # Perform reparameterization (sample in latent space)
+        z = sample_reparameterize(mean, log_std.exp())
+
+        # Decoding the reparameterized latent variable
+        x_hat = self.decoder(z)
+
+        # Reshape images
+        imgs = imgs.squeeze(1)
+        L_rec = F.cross_entropy(input=x_hat, target=imgs, reduction='sum') / x_hat.shape[0]
+        L_reg = KLD(mean, log_std).mean()
+        bpd = elbo_to_bpd(elbo=L_rec + L_reg, img_shape=imgs.shape)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -91,8 +101,9 @@ class VAE(pl.LightningModule):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        x_samples = None
-        raise NotImplementedError
+        # Sample from latent space and pass through decoder
+        z = torch.randn(size=(batch_size, self.hparams.get('z_dim')))
+        x_samples = self.decoder(z)
         #######################
         # END OF YOUR CODE    #
         #######################

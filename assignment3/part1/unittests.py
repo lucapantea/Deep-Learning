@@ -21,7 +21,6 @@ import torch.nn as nn
 
 from utils import sample_reparameterize, KLD, elbo_to_bpd
 from cnn_encoder_decoder import CNNEncoder, CNNDecoder
-import train_torch
 import train_pl
 
 """
@@ -29,7 +28,7 @@ The following variables determine which training file to check.
 - Set TEST_LIGHTNING to True if you are using train_pl.py
 - Set TEST_TORCH to True if you are using train_torch.py
 """
-TEST_LIGHTNING = False
+TEST_LIGHTNING = True
 TEST_TORCH = False
 
 if not (TEST_LIGHTNING or TEST_TORCH):
@@ -194,6 +193,7 @@ class TestCNNEncoderDecoder(unittest.TestCase):
             decoder  = CNNDecoder(z_dim=20)
             z = torch.randn(64, z_dim)
             imgs = decoder(z)
+            print(imgs.shape)
             self.assertTrue(len(imgs.shape) == 4 and all([imgs.shape[i] == o for i,o in enumerate([64,16,28,28])]),
                              msg="Output of the decoder should be an image with shape [B,C,H,W], but got: %s." % str(imgs.shape))
             self.assertTrue((imgs < 0).any(),

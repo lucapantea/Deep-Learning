@@ -38,7 +38,31 @@ class CNNEncoder(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        raise NotImplementedError
+        self.activation = nn.GELU
+        # Output shape: floor [(w+2p-k)/s] + 1
+        self.net = nn.Sequential(
+            # 1st Convolution, input size: X, output size: X
+            nn.Conv2d(in_channels=num_input_channels, out_channels=num_filters, kernel_size=3, stride=2, padding=1),
+            self.activation(),
+            # 2nd Convolution, input size: X, output size: X
+            nn.Conv2d(in_channels=num_filters, out_channels=num_filters, kernel_size=3, padding=1),
+            self.activation(),
+            # 3rd Convolution, input size: X, output size: X
+            nn.Conv2d(in_channels=num_filters, out_channels=2*num_filters, kernel_size=3, stride=2, padding=1),
+            self.activation(),
+            # 4th Convolution, input size: X, output size: X
+            nn.Conv2d(in_channels=2*num_filters, out_channels=2*num_filters, kernel_size=3, padding=1),
+            self.activation(),
+            # 5th Convolution, input size: X, output size: 4x4
+            nn.Conv2d(in_channels=2*num_filters, out_channels=2*num_filters, kernel_size=3, stride=2, padding=1),
+            self.activation(),
+            # Flatten to obtain feature vector
+            nn.Flatten()
+        )
+
+        # Learnt layers denoting the mean and std of the latent variable distribution
+        self.mean = nn.Linear(in_features=2*16*num_filters, out_features=z_dim)
+        self.log_std = nn.Linear(in_features=2*16*num_filters, out_features=z_dim)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -56,9 +80,9 @@ class CNNEncoder(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        mean = None
-        log_std = None
-        raise NotImplementedError
+        x = self.net(x)
+        mean = self.mean(x)
+        log_std = self.log_std(x)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -84,7 +108,34 @@ class CNNDecoder(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        raise NotImplementedError
+        self.activation = nn.GELU
+        c_hid = num_filters
+        # First, latent layer
+        self.latent = nn.Sequential(
+            nn.Linear(in_features=z_dim, out_features=2*16*c_hid),
+            self.activation()
+        )
+
+        # Output shape: floor [(w+2p-k)/s] + 1
+        self.net = nn.Sequential(
+            # 1st Convolution, input size: 4x4, output size: X
+            nn.ConvTranspose2d(in_channels=2*c_hid, out_channels=2*c_hid,
+                               kernel_size=3, output_padding=0, padding=1, stride=2),
+            self.activation(),
+            # 2nd Convolution, input size: X, output size: X
+            nn.Conv2d(in_channels=2*c_hid, out_channels=2*c_hid, kernel_size=3, padding=1),
+            self.activation(),
+            # 3rd Convolution, input size: X, output size: X
+            nn.ConvTranspose2d(in_channels=2*c_hid, out_channels=c_hid,
+                               kernel_size=3, output_padding=1, padding=1, stride=2),
+            self.activation(),
+            # 4th Convolution, input size: X, output size: X
+            nn.Conv2d(in_channels=c_hid, out_channels=c_hid, kernel_size=3, padding=1),
+            self.activation(),
+            # 4th Convolution, input size: X, output size: X
+            nn.ConvTranspose2d(in_channels=c_hid, out_channels=num_input_channels,
+                               kernel_size=3, output_padding=1, padding=1, stride=2),
+        )
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -102,8 +153,13 @@ class CNNDecoder(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        x = None
-        raise NotImplementedError
+        # print('latent embedding', z.shape)
+        x = self.latent(z)
+        # print('after latent layer', x.shape)
+        x = x.reshape(x.shape[0], -1, 4, 4)
+        # print('after reshape', x.shape)
+        x = self.net(x)
+        # print('decoder', x.shape)
         #######################
         # END OF YOUR CODE    #
         #######################

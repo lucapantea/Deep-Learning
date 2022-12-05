@@ -35,8 +35,7 @@ def sample_reparameterize(mean, std):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-    z = None
-    raise NotImplementedError
+    z = torch.normal(mean, std)
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -58,8 +57,8 @@ def KLD(mean, log_std):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-    KLD = None
-    raise NotImplementedError
+    KL = np.exp(torch.mul(2, log_std)) + torch.pow(mean, 2) - torch.ones_like(mean) - torch.mul(2, log_std)
+    KLD = torch.mul(0.5, torch.sum(KL, dim=-1))
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -78,8 +77,7 @@ def elbo_to_bpd(elbo, img_shape):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-    bpd = None
-    raise NotImplementedError
+    bpd = elbo * np.log2(np.e) * 1/torch.prod(torch.tensor(img_shape[1:]))
     #######################
     # END OF YOUR CODE    #
     #######################
