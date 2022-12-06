@@ -24,3 +24,10 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 270 K     Total params
 1.082     Total estimated model params size (MB)
 SLURM auto-requeueing enabled. Setting signal handlers.
+`Trainer.fit` stopped: `max_epochs=80` reached.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+        test_bpd            0.9768363237380981
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

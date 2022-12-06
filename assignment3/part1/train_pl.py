@@ -107,7 +107,7 @@ class VAE(pl.LightningModule):
 
         # Prob distribution is over channels, have to flatten image to obtain prob distr over M
         shape_x = x.shape
-        x = torch.flatten(x.permute(0, 3, 2, 1), end_dim=-2)
+        x = torch.flatten(x.permute(0, 2, 3, 1), end_dim=-2)
         x_samples = torch.multinomial(x, num_samples=1)
         x_samples = x_samples.reshape(shape_x[0], shape_x[2], shape_x[3]).unsqueeze(1)
         #######################

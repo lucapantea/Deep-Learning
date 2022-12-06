@@ -109,31 +109,30 @@ class CNNDecoder(nn.Module):
         # PUT YOUR CODE HERE  #
         #######################
         self.activation = nn.GELU
-        c_hid = num_filters
         # First, latent layer
         self.latent = nn.Sequential(
-            nn.Linear(in_features=z_dim, out_features=2*16*c_hid),
+            nn.Linear(in_features=z_dim, out_features=2*16*num_filters),
             self.activation()
         )
 
         # Output shape: floor [(w+2p-k)/s] + 1
         self.net = nn.Sequential(
             # 1st Convolution, input size: 4x4, output size: X
-            nn.ConvTranspose2d(in_channels=2*c_hid, out_channels=2*c_hid,
+            nn.ConvTranspose2d(in_channels=2*num_filters, out_channels=2*num_filters,
                                kernel_size=3, output_padding=0, padding=1, stride=2),
             self.activation(),
             # 2nd Convolution, input size: X, output size: X
-            nn.Conv2d(in_channels=2*c_hid, out_channels=2*c_hid, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=2*num_filters, out_channels=2*num_filters, kernel_size=3, padding=1),
             self.activation(),
             # 3rd Convolution, input size: X, output size: X
-            nn.ConvTranspose2d(in_channels=2*c_hid, out_channels=c_hid,
+            nn.ConvTranspose2d(in_channels=2*num_filters, out_channels=num_filters,
                                kernel_size=3, output_padding=1, padding=1, stride=2),
             self.activation(),
             # 4th Convolution, input size: X, output size: X
-            nn.Conv2d(in_channels=c_hid, out_channels=c_hid, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=num_filters, out_channels=num_filters, kernel_size=3, padding=1),
             self.activation(),
             # 4th Convolution, input size: X, output size: X
-            nn.ConvTranspose2d(in_channels=c_hid, out_channels=num_input_channels,
+            nn.ConvTranspose2d(in_channels=num_filters, out_channels=num_input_channels,
                                kernel_size=3, output_padding=1, padding=1, stride=2),
         )
         #######################
