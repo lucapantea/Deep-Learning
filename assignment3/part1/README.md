@@ -25,3 +25,14 @@ Default hyperparameters are provided in the `ArgumentParser` object of the respe
   If you test the code on your local machine, you can use the argument `--progress_bar` to show a training progressbar. Remember to not use this on Lisa as it otherwise fills up your SLURM output file very quickly. It is recommended to look at the TensorBoard there instead.
   The training time with the default hyperparameters is less than 15 minutes on a NVIDIA GTX1080Ti (GPU provided on Lisa).
 
+
+
+Python (resume) run configuration for z_dim=2 
+```
+python -u train_pl.py --z_dim 2 --resume "VAE_logs/lightning_logs/version_10501124_z_dim-2/checkpoints/z_dim-2_num_filters-32_lr-0.001_epochs-80.ckpt"
+```
+
+Python (resume) run configuration for z_dim=20
+```
+python -u train_pl.py --z_dim 20 --resume "VAE_logs/lightning_logs/version_10501125_z_dim-20/checkpoints/z_dim-20_num_filters-32_lr-0.001_epochs-80.ckpt"
+```

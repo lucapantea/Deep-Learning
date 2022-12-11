@@ -35,7 +35,6 @@ def sample_reparameterize(mean, std):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-    # z = torch.normal(mean, std)
     z = torch.randn_like(std) * std + mean
     #######################
     # END OF YOUR CODE    #
@@ -109,11 +108,29 @@ def visualize_manifold(decoder, grid_size=20):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-    img_grid = None
-    raise NotImplementedError
+    # Range for the percentiles
+    grid_lower_bound = 0.5/grid_size
+    grid_upper_bound = (grid_size-0.5)/grid_size
+    percentiles = torch.linspace(start=grid_lower_bound, end=grid_upper_bound, steps=grid_size)
+
+    # Normal icdf for z value at percentile
+    normal = torch.distributions.Normal(loc=0, scale=1)
+    icdf = normal.icdf(percentiles)
+    z = torch.cartesian_prod(icdf, icdf)  # Equivalent to meshgrid, yet output is tensor
+
+    # Sampling procedure
+    x = decoder(z).softmax(1)  # x shape: [grid_size**2, 16, 28, 28]
+    shape_x = x.shape
+    x = torch.flatten(x.permute(0, 2, 3, 1), end_dim=-2)  # x shape: [grid_size**2 * 28 * 28, 16]: [313600, 16]
+    samples = torch.multinomial(x, num_samples=1)  # x_samples shape: [313600, 1]
+    samples = samples.reshape(shape_x[0], shape_x[2], shape_x[3]).unsqueeze(1)  # x_samples shape: [grid_size**2, 28, 28]
+    samples = samples.float() / 15  # Converting 4-bit images to values between 0 and 1
+
+    # Generate grid
+    img_grid = make_grid(samples, nrow=grid_size, normalize=True, value_range=(0, 1), pad_value=0.5)
+    img_grid = img_grid.detach().cpu()
     #######################
     # END OF YOUR CODE    #
     #######################
 
     return img_grid
-
