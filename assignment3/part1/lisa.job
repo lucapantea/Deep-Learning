@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=3
 #SBATCH --time=02:00:00
 #SBATCH --mem=32000M
-#SBATCH --output=slurm_output_%x.out
+#SBATCH --output=./results/slurm_output_%x.out
 
 module purge
 module load 2021
@@ -17,4 +17,4 @@ module load Anaconda3/2021.05
 source activate ~/.conda/envs/dl2022
 
 # Run your code
-srun python -u train_pl.py 
+srun python -u train_pl.py

@@ -7,7 +7,7 @@ GPU available: True (cuda), used: True
 TPU available: False, using: 0 TPU cores
 IPU available: False, using: 0 IPUs
 HPU available: False, using: 0 HPUs
-[INFO] The progress bar has been suppressed. For updates on the training progress, check the TensorBoard file at VAE_logs/lightning_logs/version_10465012. If you want to see the progress bar, use the argparse option "progress_bar".
+[INFO] The progress bar has been suppressed. For updates on the training progress, check the TensorBoard file at VAE_logs/lightning_logs/version_10501125. If you want to see the progress bar, use the argparse option "progress_bar".
 
 Global seed set to 42
 /home/lcur0630/.conda/envs/dl2022/lib/python3.10/site-packages/pytorch_lightning/trainer/configuration_validator.py:267: LightningDeprecationWarning: The `Callback.on_epoch_end` hook was deprecated in v1.6 and will be removed in v1.8. Please use `Callback.on_<train/validation/test>_epoch_end` instead.
@@ -29,5 +29,5 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
        Test metric             DataLoader 0
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        test_bpd            0.9768363237380981
+        test_bpd            0.5186018347740173
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

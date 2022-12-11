@@ -199,8 +199,9 @@ def train_vae(args):
                                                    root=args.data_dir)
 
     # Create a PyTorch Lightning trainer with the generation callback
+    filename = f'z_dim-{args.z_dim}_num_filters-{args.num_filters}_lr-{args.lr}_epochs-{args.epochs}'
     gen_callback = GenerateCallback(save_to_disk=True)
-    save_callback = ModelCheckpoint(save_weights_only=True, mode="min", monitor="val_bpd")
+    save_callback = ModelCheckpoint(save_weights_only=True, mode="min", monitor="val_bpd", filename=filename)
     trainer = pl.Trainer(default_root_dir=args.log_dir,
                          gpus=1 if torch.cuda.is_available() else 0,
                          max_epochs=args.epochs,
@@ -218,12 +219,15 @@ def train_vae(args):
                 z_dim=args.z_dim,
                 lr=args.lr)
 
-    # Training
-    gen_callback.sample_and_save(trainer, model, epoch=0)  # Initial sample
-    trainer.fit(model, train_loader, val_loader)
+
+    if not args.resume:
+        # Training  
+        gen_callback.sample_and_save(trainer, model, epoch=0)  # Initial sample
+        trainer.fit(model, train_loader, val_loader)
 
     # Testing
-    model = VAE.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    checkpoint_path = args.resume if args.resume else trainer.checkpoint_callback.best_model_path
+    model = VAE.load_from_checkpoint(os.path.join(checkpoint_path))
     test_result = trainer.test(model, dataloaders=test_loader, verbose=True)
 
     # Manifold generation
@@ -268,6 +272,8 @@ if __name__ == '__main__':
     parser.add_argument('--progress_bar', action='store_true',
                         help=('Use a progress bar indicator for interactive experimentation. '
                               'Not to be used in conjuction with SLURM jobs'))
+    parser.add_argument('--resume', default=None, type=str,
+                        help=('path to resume from checkpoint'))
 
     args = parser.parse_args()
 
