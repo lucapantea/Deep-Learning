@@ -143,7 +143,7 @@ class ConvDecoder(nn.Module):
         #######################
         x = self.latent(z)
         x = x.reshape(x.shape[0], -1, 4, 4)
-        recon_x = self.net(z)
+        recon_x = self.net(x)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -250,11 +250,6 @@ class AdversarialAE(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        ae_loss = None
-        logging_dict = {"gen_loss": None,
-                        "recon_loss": None,
-                        "ae_loss": None}
-        
         # Simple MSE reconstruction loss
         recon_loss = F.mse_loss(input=recon_x, target=x)
 
@@ -262,13 +257,13 @@ class AdversarialAE(nn.Module):
         d_out_fake = self.discriminator(z_fake)
 
         # Fake -> from latent space, fake > 0 
-        gen_loss = F.binary_cross_entropy(input=d_out_fake, target=-torch.ones_like(d_out_fake))
-        ae_loss = lambda_ * logging_dict['recon_loss'] + (1 - lambda_) * logging_dict['gen_loss']
+        gen_loss = F.binary_cross_entropy_with_logits(input=d_out_fake, target=-torch.ones_like(d_out_fake))
+        ae_loss = lambda_ * recon_loss + (1 - lambda_) * gen_loss
 
         # Logging results
         logging_dict = {"gen_loss": gen_loss,
-                "recon_loss": recon_loss,
-                "ae_loss": ae_loss}
+                        "recon_loss": recon_loss,
+                        "ae_loss": ae_loss}
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -290,7 +285,6 @@ class AdversarialAE(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        disc_loss = None
         # Latent codes extracted by encoder from input (z_fake)
         d_out_fake = self.discriminator(z_fake)
 
@@ -299,10 +293,10 @@ class AdversarialAE(nn.Module):
         d_out_true = self.discriminator(z_true)
 
         # Discriminator loss -> fake [extracted by encoder]; fake < 0
-        loss_fake = F.binary_cross_entropy(input=d_out_fake, target=-torch.ones_like(d_out_fake))
+        loss_fake = F.binary_cross_entropy_with_logits(input=d_out_fake, target=-torch.ones_like(d_out_fake))
 
-        # Discriminator loss -> true [sampled form gaussina prior]; true > 0
-        loss_real = F.binary_cross_entropy(input=d_out_true, target=torch.ones_like(d_out_true))
+        # Discriminator loss -> true [sampled form gaussian prior]; true > 0
+        loss_real = F.binary_cross_entropy_with_logits(input=d_out_true, target=torch.ones_like(d_out_true))
 
         # Total discriminator loss
         disc_loss = loss_fake + loss_real
@@ -314,9 +308,9 @@ class AdversarialAE(nn.Module):
 
         # Logging results
         logging_dict = {"disc_loss": disc_loss,
-                "loss_real": loss_real,
-                "loss_fake": loss_fake,
-                "accuracy": accuracy}
+                        "loss_real": loss_real,
+                        "loss_fake": loss_fake,
+                        "accuracy": accuracy}
         #######################
         # END OF YOUR CODE    #
         #######################
