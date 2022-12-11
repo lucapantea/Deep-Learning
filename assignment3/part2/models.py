@@ -34,7 +34,25 @@ class ConvEncoder(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        raise NotImplementedError
+        self.activation = nn.ReLU
+        num_input_channels = 1
+        num_filters = 32
+        # Output shape: floor [(w+2p-k)/s] + 1
+        self.net = nn.Sequential(
+            nn.Conv2d(in_channels=num_input_channels, out_channels=num_filters, kernel_size=3, stride=2, padding=1),
+            self.activation(),
+            nn.Conv2d(in_channels=num_filters, out_channels=num_filters, kernel_size=3, padding=1),
+            self.activation(),
+            nn.Conv2d(in_channels=num_filters, out_channels=2*num_filters, kernel_size=3, stride=2, padding=1),
+            self.activation(),
+            nn.Conv2d(in_channels=2*num_filters, out_channels=2*num_filters, kernel_size=3, padding=1),
+            self.activation(),
+            nn.Conv2d(in_channels=2*num_filters, out_channels=2*num_filters, kernel_size=3, stride=2, padding=1),
+            self.activation(),
+            nn.Flatten()
+        )
+
+        self.output = nn.Linear(in_features=2*16*num_filters, out_features=z_dim)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -49,8 +67,11 @@ class ConvEncoder(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        x = None
-        raise NotImplementedError
+        # Extract features
+        x = self.net(x)
+
+        # Obtain embedding
+        z = self.output(x)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -80,7 +101,32 @@ class ConvDecoder(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        raise NotImplementedError
+        self.activation = nn.ReLU
+        num_input_channels = 1
+        num_filters = 32
+
+        self.latent = nn.Sequential(
+            nn.Linear(in_features=z_dim, out_features=2*16*num_filters),
+            self.activation()
+        )
+
+        # Output shape: floor [(w+2p-k)/s] + 1
+        self.net = nn.Sequential(
+            nn.ConvTranspose2d(in_channels=2*num_filters, out_channels=2*num_filters,
+                               kernel_size=3, output_padding=0, padding=1, stride=2),
+            self.activation(),
+            nn.Conv2d(in_channels=2*num_filters, out_channels=2*num_filters, kernel_size=3, padding=1),
+            self.activation(),
+            nn.ConvTranspose2d(in_channels=2*num_filters, out_channels=num_filters,
+                               kernel_size=3, output_padding=1, padding=1, stride=2),
+            self.activation(),
+            nn.Conv2d(in_channels=num_filters, out_channels=num_filters, kernel_size=3, padding=1),
+            self.activation(),
+            nn.ConvTranspose2d(in_channels=num_filters, out_channels=num_input_channels,
+                               kernel_size=3, output_padding=1, padding=1, stride=2),
+            nn.Tanh()  # Tanh activation function to scale the output between -1 and 1
+        )
+
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -95,8 +141,9 @@ class ConvDecoder(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        recon_x = None
-        raise NotImplementedError
+        x = self.latent(z)
+        x = x.reshape(x.shape[0], -1, 4, 4)
+        recon_x = self.net(z)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -117,7 +164,15 @@ class Discriminator(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        raise NotImplementedError
+        self.activation = nn.LeakyReLU(negative_slope=0.2)
+        num_hidden = 512
+        self.net = nn.Sequential(
+            nn.Linear(in_features=z_dim, out_features=num_hidden),
+            self.activation,
+            nn.Linear(in_features=num_hidden, out_features=num_hidden),
+            self.activation,
+            nn.Linear(in_features=num_hidden, out_features=1),
+        )
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -133,8 +188,7 @@ class Discriminator(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        preds = None
-        raise NotImplementedError
+        preds = self.net(z)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -172,9 +226,8 @@ class AdversarialAE(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        recon_x_ = None
-        z = None
-        raise NotImplementedError
+        z = self.encoder(x)
+        recon_x = self.decoder(z)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -201,7 +254,21 @@ class AdversarialAE(nn.Module):
         logging_dict = {"gen_loss": None,
                         "recon_loss": None,
                         "ae_loss": None}
-        raise NotImplementedError
+        
+        # Simple MSE reconstruction loss
+        recon_loss = F.mse_loss(input=recon_x, target=x)
+
+        # Latent codes extracted by encoder from input (z_fake)
+        d_out_fake = self.discriminator(z_fake)
+
+        # Fake -> from latent space, fake > 0 
+        gen_loss = F.binary_cross_entropy(input=d_out_fake, target=-torch.ones_like(d_out_fake))
+        ae_loss = lambda_ * logging_dict['recon_loss'] + (1 - lambda_) * logging_dict['gen_loss']
+
+        # Logging results
+        logging_dict = {"gen_loss": gen_loss,
+                "recon_loss": recon_loss,
+                "ae_loss": ae_loss}
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -224,11 +291,32 @@ class AdversarialAE(nn.Module):
         # PUT YOUR CODE HERE  #
         #######################
         disc_loss = None
-        logging_dict = {"disc_loss": None,
-                        "loss_real": None,
-                        "loss_fake": None,
-                        "accuracy": None}
-        raise NotImplementedError
+        # Latent codes extracted by encoder from input (z_fake)
+        d_out_fake = self.discriminator(z_fake)
+
+        # Latent codes sampled from the standard gaussian prior (z_true)
+        z_true = torch.randn_like(z_fake)
+        d_out_true = self.discriminator(z_true)
+
+        # Discriminator loss -> fake [extracted by encoder]; fake < 0
+        loss_fake = F.binary_cross_entropy(input=d_out_fake, target=-torch.ones_like(d_out_fake))
+
+        # Discriminator loss -> true [sampled form gaussina prior]; true > 0
+        loss_real = F.binary_cross_entropy(input=d_out_true, target=torch.ones_like(d_out_true))
+
+        # Total discriminator loss
+        disc_loss = loss_fake + loss_real
+
+        # Accuracy of discriminator
+        correct = torch.numel(d_out_fake[d_out_fake < 0]) + torch.numel(d_out_true[d_out_true > 0])
+        total = 2 * z_fake.shape[0]
+        accuracy = correct / total
+
+        # Logging results
+        logging_dict = {"disc_loss": disc_loss,
+                "loss_real": loss_real,
+                "loss_fake": loss_fake,
+                "accuracy": accuracy}
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -247,8 +335,8 @@ class AdversarialAE(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        x = None
-        raise NotImplementedError
+        z = torch.randn(size=(batch_size, self.z_dim))
+        x = self.decoder(z)
         #######################
         # END OF YOUR CODE    #
         #######################
