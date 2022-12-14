@@ -257,7 +257,7 @@ class AdversarialAE(nn.Module):
         d_out_fake = self.discriminator(z_fake)
 
         # Fake -> from latent space, fake > 0 
-        gen_loss = F.binary_cross_entropy_with_logits(input=d_out_fake, target=-torch.ones_like(d_out_fake))
+        gen_loss = F.binary_cross_entropy_with_logits(input=d_out_fake, target=torch.zeros_like(d_out_fake))
         ae_loss = lambda_ * recon_loss + (1 - lambda_) * gen_loss
 
         # Logging results
@@ -293,13 +293,13 @@ class AdversarialAE(nn.Module):
         d_out_true = self.discriminator(z_true)
 
         # Discriminator loss -> fake [extracted by encoder]; fake < 0
-        loss_fake = F.binary_cross_entropy_with_logits(input=d_out_fake, target=-torch.ones_like(d_out_fake))
+        loss_fake = F.binary_cross_entropy_with_logits(input=d_out_fake, target=torch.zeros_like(d_out_fake))
 
         # Discriminator loss -> true [sampled form gaussian prior]; true > 0
-        loss_real = F.binary_cross_entropy_with_logits(input=d_out_true, target=torch.ones_like(d_out_true))
+        loss_true = F.binary_cross_entropy_with_logits(input=d_out_true, target=torch.ones_like(d_out_true))
 
         # Total discriminator loss
-        disc_loss = loss_fake + loss_real
+        disc_loss = loss_fake + loss_true
 
         # Accuracy of discriminator
         correct = torch.numel(d_out_fake[d_out_fake < 0]) + torch.numel(d_out_true[d_out_true > 0])
@@ -308,7 +308,7 @@ class AdversarialAE(nn.Module):
 
         # Logging results
         logging_dict = {"disc_loss": disc_loss,
-                        "loss_real": loss_real,
+                        "loss_real": loss_true,
                         "loss_fake": loss_fake,
                         "accuracy": accuracy}
         #######################
@@ -330,6 +330,7 @@ class AdversarialAE(nn.Module):
         # PUT YOUR CODE HERE  #
         #######################
         z = torch.randn(size=(batch_size, self.z_dim))
+        z = z.to(self.device)
         x = self.decoder(z)
         #######################
         # END OF YOUR CODE    #

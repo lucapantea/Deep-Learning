@@ -58,7 +58,7 @@ class TensorBoardLogger(object):
 
         for key, val in log_dict.items():
             # Add new value to averages
-            val = val.detach().cpu()
+            # val = val.detach().cpu()
             self.value_dict[key] += val
             self.steps[key] += 1
             # Plot to TensorBoard every avg_window steps

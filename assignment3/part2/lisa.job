@@ -1,8 +1,8 @@
-#!/bin/bash - l
+#!/bin/bash -l
 
 #SBATCH --partition=gpu_shared_course
 #SBATCH --gres=gpu:1
-#SBATCH --job-name=TrainAAE
+#SBATCH --job-name=TrainAAE-2.6a
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
 #SBATCH --time=01:00:00
@@ -17,4 +17,4 @@ module load Anaconda3/2021.05
 source activate ~/.conda/envs/dl2022
 
 # Run your code
-srun python -u train.py --data_dir $TMPDIR/
+srun python -u train.py --z_dim 2 --lambda_ 1

@@ -101,11 +101,19 @@ def train_aae(epoch, model, train_loader,
         # PUT YOUR CODE HERE  #
         #######################
         # Encoder-Decoder update
+        # Perform forward pass, obtain fake latent code
         recon_x, z = model(x)
+
+        # Calculate loss for the autoencoder
         ae_loss, logging_dict_ae = model.get_loss_autoencoder(x, recon_x, z, lambda_)
+
+        # Update the AE params
         optimizer_ae.zero_grad()
         ae_loss.backward()
         optimizer_ae.step()
+
+        # Detach z from computational graph
+        z = z.detach()
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -114,10 +122,17 @@ def train_aae(epoch, model, train_loader,
         # PUT YOUR CODE HERE  #
         #######################
         # Discriminator update
-        disc_loss, logging_dict = model.get_loss_discriminator(z)
+        # Calculate loss for the descriminator
+        disc_loss, logging_dict_d = model.get_loss_discriminator(z)
+
+        # Update descriminator params
         optimizer_disc.zero_grad()
         disc_loss.backward()
         optimizer_disc.step()
+
+        # Updating the summary writers
+        logger_ae.add_values(logging_dict_ae)
+        logger_disc.add_values(logging_dict_d)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -175,7 +190,9 @@ def main(args):
     #######################
     # You can use the Adam optimizer for autoencoder and SGD for discriminator.
     # It is recommended to reduce the momentum (beta1) to e.g. 0.5 for Adam optimizer.
-    optimizer_ae = optim.Adam(model.parameters(), lr=args.ae_lr, betas=(0.5, 0.999))
+    optimizer_ae = optim.Adam([{'params': model.encoder.parameters()}, 
+                               {'params': model.decoder.parameters()}], 
+                               lr=args.ae_lr, betas=(0.5, 0.999))
     optimizer_disc = optim.SGD(model.discriminator.parameters(), lr=args.d_lr)
     #######################
     # END OF YOUR CODE    #

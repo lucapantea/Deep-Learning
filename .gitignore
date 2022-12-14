@@ -192,5 +192,6 @@ assignment2/saved_models
 
 assignment3/data
 assignment3/part1/VAE_logs
+assignment3/part2/AAE_logs
 
 .DS_Store
