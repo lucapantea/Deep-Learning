@@ -257,7 +257,7 @@ class AdversarialAE(nn.Module):
         d_out_fake = self.discriminator(z_fake)
 
         # Fake -> from latent space, fake > 0 
-        gen_loss = F.binary_cross_entropy_with_logits(input=d_out_fake, target=torch.zeros_like(d_out_fake))
+        gen_loss = F.binary_cross_entropy_with_logits(input=d_out_fake, target=torch.ones_like(d_out_fake))
         ae_loss = lambda_ * recon_loss + (1 - lambda_) * gen_loss
 
         # Logging results
@@ -293,10 +293,10 @@ class AdversarialAE(nn.Module):
         d_out_true = self.discriminator(z_true)
 
         # Discriminator loss -> fake [extracted by encoder]; fake < 0
-        loss_fake = F.binary_cross_entropy_with_logits(input=d_out_fake, target=torch.zeros_like(d_out_fake))
+        loss_fake = F.binary_cross_entropy_with_logits(input=d_out_fake, target=torch.ones_like(d_out_fake))
 
         # Discriminator loss -> true [sampled form gaussian prior]; true > 0
-        loss_true = F.binary_cross_entropy_with_logits(input=d_out_true, target=torch.ones_like(d_out_true))
+        loss_true = F.binary_cross_entropy_with_logits(input=d_out_true, target=torch.zeros_like(d_out_true))
 
         # Total discriminator loss
         disc_loss = loss_fake + loss_true
